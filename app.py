@@ -496,6 +496,13 @@ def time_intelligence():
     return render_template("time_intelligence.html", intel=intel)
 
 
+@app.route("/api/time-intelligence")
+def api_time_intelligence():
+    """Returns real-time Time Intelligence metrics in JSON format."""
+    intel = database.get_time_intelligence_data(get_db())
+    return jsonify(intel)
+
+
 @app.route("/api/simulate-priority", methods=["POST"])
 def simulate_priority():
     """

@@ -1100,20 +1100,29 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
     cursor = conn.cursor()
 
     # Total recorded focus time
-    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS total_sec FROM StudySessions")
+    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS total_sec FROM StudySessions WHERE Duration_Seconds > 0")
     total_seconds = int(cursor.fetchone()["total_sec"])
 
     # Today's focus time
-    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS today_sec FROM StudySessions WHERE Session_Date = ?", (today_str,))
+    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS today_sec FROM StudySessions WHERE Session_Date = ? AND Duration_Seconds > 0", (today_str,))
     today_seconds = int(cursor.fetchone()["today_sec"])
 
     # This week's focus time
-    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS week_sec FROM StudySessions WHERE Session_Date >= ?", (week_start,))
+    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS week_sec FROM StudySessions WHERE Session_Date >= ? AND Duration_Seconds > 0", (week_start,))
     week_seconds = int(cursor.fetchone()["week_sec"])
 
     # This month's focus time
-    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS month_sec FROM StudySessions WHERE Session_Date >= ?", (month_start,))
+    cursor.execute("SELECT COALESCE(SUM(Duration_Seconds), 0) AS month_sec FROM StudySessions WHERE Session_Date >= ? AND Duration_Seconds > 0", (month_start,))
     month_seconds = int(cursor.fetchone()["month_sec"])
+
+    # Incorporate actively running session in real time if present
+    active_session = get_active_session(db_path)
+    active_elapsed = int(active_session["elapsed_seconds"]) if (active_session and active_session.get("has_active")) else 0
+
+    live_today_seconds = today_seconds + active_elapsed
+    live_week_seconds = week_seconds + active_elapsed
+    live_month_seconds = month_seconds + active_elapsed
+    live_total_seconds = total_seconds + active_elapsed
 
     # Total focus sessions count
     cursor.execute("SELECT COUNT(*) AS count FROM StudySessions WHERE Duration_Seconds > 0")
@@ -1149,14 +1158,36 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
     subject_breakdown = []
     for sr in subject_rows:
         sec = int(sr["subject_sec"])
-        pct = round((sec / total_seconds) * 100, 1) if total_seconds > 0 else 0
         subject_breakdown.append({
             "subject": sr["subject"],
             "seconds": sec,
             "formatted": format_duration(sec),
-            "percent": pct,
+            "percent": 0.0,
             "task_count": sr["task_count"]
         })
+
+    # Include live active session subject focus in real time
+    if active_elapsed > 0 and active_session:
+        active_subj = active_session.get("task_subject", "General")
+        found = False
+        for sb in subject_breakdown:
+            if sb["subject"] == active_subj:
+                sb["seconds"] += active_elapsed
+                sb["formatted"] = format_duration(sb["seconds"])
+                found = True
+                break
+        if not found and active_subj:
+            subject_breakdown.append({
+                "subject": active_subj,
+                "seconds": active_elapsed,
+                "formatted": format_duration(active_elapsed),
+                "percent": 0.0,
+                "task_count": 1
+            })
+
+    # Calculate percentages against live total seconds
+    for sb in subject_breakdown:
+        sb["percent"] = round((sb["seconds"] / live_total_seconds) * 100, 1) if live_total_seconds > 0 else 0
 
     # Recent Session History Timeline
     cursor.execute("""
@@ -1281,15 +1312,22 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
         insights.append(f"🔥 Active Study Streak: You have maintained genuine study focus for {streak_count} consecutive days!")
 
     return {
-        "today_seconds": today_seconds,
-        "today_formatted": format_duration(today_seconds),
-        "week_seconds": week_seconds,
-        "week_formatted": format_duration(week_seconds),
-        "month_seconds": month_seconds,
-        "month_formatted": format_duration(month_seconds),
-        "total_seconds": total_seconds,
-        "total_formatted": format_duration(total_seconds),
-        "total_sessions_count": total_sessions_count,
+        "today_seconds": live_today_seconds,
+        "today_completed_seconds": today_seconds,
+        "today_formatted": format_duration(live_today_seconds),
+        "week_seconds": live_week_seconds,
+        "week_completed_seconds": week_seconds,
+        "week_formatted": format_duration(live_week_seconds),
+        "month_seconds": live_month_seconds,
+        "month_completed_seconds": month_seconds,
+        "month_formatted": format_duration(live_month_seconds),
+        "total_seconds": live_total_seconds,
+        "total_completed_seconds": total_seconds,
+        "total_formatted": format_duration(live_total_seconds),
+        "active_session": active_session,
+        "active_elapsed_seconds": active_elapsed,
+        "has_active_session": bool(active_session and active_session.get("has_active")),
+        "total_sessions_count": total_sessions_count + (1 if active_elapsed > 0 else 0),
         "completed_tasks_count": completed_tasks_count,
         "avg_task_seconds": avg_task_seconds,
         "avg_task_formatted": format_duration(avg_task_seconds) if avg_task_seconds > 0 else "N/A",
@@ -1302,7 +1340,7 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
 
 
 def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
-    """Seeds the database with representative student tasks for demonstration and testing."""
+    """Seeds the database with representative student tasks and multi-day focus sessions for demonstration."""
     today = date.today()
     sample_tasks = [
         {
@@ -1361,8 +1399,9 @@ def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
         }
     ]
 
+    task_ids = []
     for item in sample_tasks:
-        add_task(
+        tid = add_task(
             title=item["title"],
             subject=item["subject"],
             deadline=item["deadline"],
@@ -1372,3 +1411,73 @@ def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
             status=item["status"],
             db_path=db_path
         )
+        task_ids.append((tid, item))
+
+    # Seed multi-day focus sessions across distinct dates so time intelligence metrics reflect genuine windows
+    conn = get_db_connection(db_path)
+    with conn:
+        cursor = conn.cursor()
+        today_str = today.strftime("%Y-%m-%d")
+        now_iso = datetime.now().isoformat()
+
+        # Session 1: Today on Mathematics (35m = 2100s)
+        math_id = task_ids[0][0]
+        cursor.execute("""
+            INSERT INTO StudySessions (
+                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
+            ) VALUES (?, ?, ?, 2100, ?, 35, 'completed', ?, ?)
+        """, (math_id, now_iso, now_iso, today_str, f"{today_str} 11:35:00", now_iso))
+        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 2100, First_Tracked_At = ? WHERE Task_ID = ?", (now_iso, math_id))
+
+        # Session 2: Yesterday on Physics (50m = 3000s)
+        phys_id = task_ids[1][0]
+        yest = today - timedelta(days=1)
+        yest_str = yest.strftime("%Y-%m-%d")
+        yest_iso = yest.isoformat()
+        cursor.execute("""
+            INSERT INTO StudySessions (
+                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
+            ) VALUES (?, ?, ?, 3000, ?, 50, 'completed', ?, ?)
+        """, (phys_id, yest_iso, yest_iso, yest_str, f"{yest_str} 16:50:00", yest_iso))
+        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 3000, First_Tracked_At = ? WHERE Task_ID = ?", (yest_iso, phys_id))
+
+        # Session 3: 3 days ago on English Literature (45m = 2700s)
+        eng_id = task_ids[3][0]
+        d3 = today - timedelta(days=3)
+        d3_str = d3.strftime("%Y-%m-%d")
+        d3_iso = d3.isoformat()
+        cursor.execute("""
+            INSERT INTO StudySessions (
+                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
+            ) VALUES (?, ?, ?, 2700, ?, 45, 'completed', ?, ?)
+        """, (eng_id, d3_iso, d3_iso, d3_str, f"{d3_str} 14:45:00", d3_iso))
+        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 2700, First_Tracked_At = ? WHERE Task_ID = ?", (d3_iso, eng_id))
+
+        # Sessions 4 & 5: On Completed CS Task (2 sessions of 1h 15m = 4500s each, total 9000s = 2.5h)
+        cs_id = task_ids[5][0]
+        d8 = today - timedelta(days=8)
+        d8_str = d8.strftime("%Y-%m-%d")
+        d8_iso = d8.isoformat()
+        cursor.execute("""
+            INSERT INTO StudySessions (
+                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
+            ) VALUES (?, ?, ?, 4500, ?, 75, 'completed', ?, ?)
+        """, (cs_id, d8_iso, d8_iso, d8_str, f"{d8_str} 10:15:00", d8_iso))
+
+        d14 = today - timedelta(days=14)
+        d14_str = d14.strftime("%Y-%m-%d")
+        d14_iso = d14.isoformat()
+        cursor.execute("""
+            INSERT INTO StudySessions (
+                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
+            ) VALUES (?, ?, ?, 4500, ?, 75, 'completed', ?, ?)
+        """, (cs_id, d14_iso, d14_iso, d14_str, f"{d14_str} 15:30:00", d14_iso))
+
+        cursor.execute("""
+            UPDATE Tasks 
+            SET Total_Tracked_Seconds = 9000, 
+                First_Tracked_At = ?, 
+                Completed_At = ?
+            WHERE Task_ID = ?
+        """, (d14_iso, f"{d3_str} 17:00:00", cs_id))
+    conn.close()

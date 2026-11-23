@@ -1021,15 +1021,40 @@ let pendingSwitchTaskId = null;
 
 function initTimeTracking() {
     fetchActiveSession();
-    // Re-sync with server periodically (every 25 seconds) to ensure clock parity
-    setInterval(fetchActiveSession, 25000);
+    setInterval(fetchActiveSession, 20000);
+
+    // If on Time Intelligence page, periodically sync dashboard data
+    if (document.getElementById("intelTodayValue")) {
+        setInterval(fetchTimeIntelData, 15000);
+    }
 
     // Sync immediately when browser tab regains visibility (prevents background throttle drift)
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             fetchActiveSession();
+            if (document.getElementById("intelTodayValue")) {
+                fetchTimeIntelData();
+            }
         }
     });
+}
+
+function fetchTimeIntelData() {
+    fetch("/api/time-intelligence")
+        .then(res => res.json())
+        .then(data => {
+            const todayEl = document.getElementById("intelTodayValue");
+            const weekEl = document.getElementById("intelWeekValue");
+            const monthEl = document.getElementById("intelMonthValue");
+            const totalEl = document.getElementById("intelTotalValue");
+            if (todayEl) todayEl.dataset.baseSeconds = data.today_completed_seconds || 0;
+            if (weekEl) weekEl.dataset.baseSeconds = data.week_completed_seconds || 0;
+            if (monthEl) monthEl.dataset.baseSeconds = data.month_completed_seconds || 0;
+            if (totalEl) totalEl.dataset.baseSeconds = data.total_completed_seconds || 0;
+            const currentElapsed = activeSessionState ? (activeSessionState.elapsed_seconds || 0) : 0;
+            updateTimeIntelDashboard(currentElapsed);
+        })
+        .catch(err => console.warn("Time intel sync notice:", err));
 }
 
 function fetchActiveSession() {
@@ -1058,6 +1083,7 @@ function syncActiveSessionUI(data) {
             const textSpan = btn.querySelector(".track-btn-text");
             if (textSpan) textSpan.textContent = "Track Time";
         });
+        updateTimeIntelDashboard(0);
         return;
     }
 
@@ -1123,6 +1149,7 @@ function syncActiveSessionUI(data) {
         if (digitsEl) {
             digitsEl.textContent = formatDurationHms(currentElapsed);
         }
+        updateTimeIntelDashboard(currentElapsed);
     }
 
     renderActiveDigits();
@@ -1131,6 +1158,72 @@ function syncActiveSessionUI(data) {
     if (!data.is_paused) {
         activeSessionInterval = setInterval(renderActiveDigits, 1000);
     }
+}
+
+function updateTimeIntelDashboard(activeElapsed) {
+    const todayEl = document.getElementById("intelTodayValue");
+    const weekEl = document.getElementById("intelWeekValue");
+    const monthEl = document.getElementById("intelMonthValue");
+    const totalEl = document.getElementById("intelTotalValue");
+    const banner = document.getElementById("intelActiveBanner");
+    const bannerClock = document.getElementById("intelBannerClock");
+    const bannerPauseBtn = document.getElementById("intelBannerPauseBtn");
+    const bannerTitle = document.getElementById("intelBannerTaskTitle");
+    const bannerSubject = document.getElementById("intelBannerTaskSubject");
+    const liveIndicator = document.getElementById("intelLiveIndicator");
+
+    if (!todayEl) return; // Not on Time Intelligence page
+
+    const hasActive = activeSessionState && activeSessionState.has_active;
+    const isPaused = activeSessionState && activeSessionState.is_paused;
+    const elapsed = hasActive ? (activeElapsed || 0) : 0;
+
+    // Real-time active banner update
+    if (banner) {
+        if (hasActive) {
+            banner.classList.remove("d-none");
+            if (bannerClock) bannerClock.textContent = `⏱ ${formatDuration(elapsed)}`;
+            if (bannerTitle) bannerTitle.textContent = activeSessionState.task_title || "Study Session";
+            if (bannerSubject) bannerSubject.textContent = activeSessionState.task_subject || "General";
+            if (bannerPauseBtn) bannerPauseBtn.textContent = isPaused ? "▶ Resume" : "⏸ Pause";
+        } else {
+            banner.classList.add("d-none");
+        }
+    }
+
+    if (liveIndicator) {
+        if (hasActive) {
+            liveIndicator.classList.remove("d-none");
+        } else {
+            liveIndicator.classList.add("d-none");
+        }
+    }
+
+    const baseToday = parseInt(todayEl.dataset.baseSeconds || "0", 10);
+    const baseWeek = parseInt(weekEl?.dataset.baseSeconds || "0", 10);
+    const baseMonth = parseInt(monthEl?.dataset.baseSeconds || "0", 10);
+    const baseTotal = parseInt(totalEl?.dataset.baseSeconds || "0", 10);
+
+    todayEl.textContent = formatDuration(baseToday + elapsed);
+    if (weekEl) weekEl.textContent = formatDuration(baseWeek + elapsed);
+    if (monthEl) monthEl.textContent = formatDuration(baseMonth + elapsed);
+    if (totalEl) totalEl.textContent = formatDuration(baseTotal + elapsed);
+}
+
+function formatDuration(seconds) {
+    if (!seconds || seconds <= 0) return "0m";
+    const sec = Math.floor(seconds);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+
+    if (h > 0) {
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    if (m > 0) {
+        return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    }
+    return `${s}s`;
 }
 
 function formatDurationHms(totalSeconds) {

@@ -24,6 +24,21 @@
         </div>
     </div>
 
+    <!-- Active Real-Time Focus Session Banner -->
+    <div id="intelActiveBanner" class="alert alert-info active-session-banner {% if not intel.has_active_session %}d-none{% endif %}" style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="live-dot-pulse"></span>
+                <span><strong>Active Session in Progress:</strong> Focusing on <em id="intelBannerTaskTitle">{{ intel.active_session.task_title if intel.active_session else '' }}</em> (<span id="intelBannerTaskSubject">{{ intel.active_session.task_subject if intel.active_session else '' }}</span>)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="font-mono" id="intelBannerClock" style="font-size: 1.15rem; font-weight: 700; color: var(--primary);">⏱ {{ intel.active_session.elapsed_formatted if intel.active_session else '0s' }}</span>
+                <button type="button" class="btn btn-sm btn-outline" id="intelBannerPauseBtn" onclick="toggleActiveSessionPause();">{% if intel.active_session and intel.active_session.is_paused %}▶ Resume{% else %}⏸ Pause{% endif %}</button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="stopActiveTracking();">⏹ Stop & Save</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Overview Metric Cards Grid -->
     <div class="stats-grid time-stats-grid">
         <div class="stat-card" style="--stagger: 0;">
@@ -31,8 +46,13 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
             </div>
             <div class="stat-info">
-                <span class="stat-label">Today's Focus</span>
-                <span class="stat-value text-primary">{{ intel.today_formatted }}</span>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <span class="stat-label">Today's Focus</span>
+                    <span id="intelLiveIndicator" class="live-tag {% if not intel.has_active_session %}d-none{% endif %}">
+                        <span class="live-dot-pulse"></span> LIVE
+                    </span>
+                </div>
+                <span id="intelTodayValue" class="stat-value text-primary" data-base-seconds="{{ intel.today_completed_seconds }}">{{ intel.today_formatted }}</span>
             </div>
         </div>
         <div class="stat-card" style="--stagger: 1;">
@@ -41,7 +61,7 @@
             </div>
             <div class="stat-info">
                 <span class="stat-label">This Week</span>
-                <span class="stat-value">{{ intel.week_formatted }}</span>
+                <span id="intelWeekValue" class="stat-value" data-base-seconds="{{ intel.week_completed_seconds }}">{{ intel.week_formatted }}</span>
             </div>
         </div>
         <div class="stat-card" style="--stagger: 2;">
@@ -50,7 +70,7 @@
             </div>
             <div class="stat-info">
                 <span class="stat-label">This Month</span>
-                <span class="stat-value">{{ intel.month_formatted }}</span>
+                <span id="intelMonthValue" class="stat-value" data-base-seconds="{{ intel.month_completed_seconds }}">{{ intel.month_formatted }}</span>
             </div>
         </div>
         <div class="stat-card" style="--stagger: 3;">
@@ -59,7 +79,7 @@
             </div>
             <div class="stat-info">
                 <span class="stat-label">Total Recorded Time</span>
-                <span class="stat-value text-success">{{ intel.total_formatted }}</span>
+                <span id="intelTotalValue" class="stat-value text-success" data-base-seconds="{{ intel.total_completed_seconds }}">{{ intel.total_formatted }}</span>
             </div>
         </div>
         <div class="stat-card" style="--stagger: 4;">
@@ -68,7 +88,7 @@
             </div>
             <div class="stat-info">
                 <span class="stat-label">Active Streak</span>
-                <span class="stat-value">{{ intel.streak_days }} Day{% if intel.streak_days != 1 %}s{% endif %}</span>
+                <span id="intelStreakValue" class="stat-value">{{ intel.streak_days }} Day{% if intel.streak_days != 1 %}s{% endif %}</span>
             </div>
         </div>
     </div>
