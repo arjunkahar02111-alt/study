@@ -109,9 +109,9 @@ def dashboard():
         "upcoming": len(upcoming_tasks),
     }
 
-    streak = database.get_study_streak(DB_FILE)
-    capacity = database.get_daily_capacity(DB_FILE)
-    heatmap = database.get_weekly_workload_heatmap(DB_FILE)
+    streak = database.get_study_streak(get_db())
+    capacity = database.get_daily_capacity(get_db())
+    heatmap = database.get_weekly_workload_heatmap(get_db())
     quote = random.choice(MOTIVATIONAL_QUOTES)
 
     return render_template(
@@ -177,7 +177,7 @@ def add_task():
                 difficulty=diff_int,
                 importance=imp_int,
                 estimated_hours=hours_float,
-                db_path=DB_FILE
+                db_path=get_db()
             )
             flash("Task added successfully", "success")
             return redirect(url_for("study_plan"))
@@ -195,8 +195,8 @@ def study_plan():
     Displays all pending tasks sorted by Priority Score in descending order.
     Shows score breakdown, urgency, workload, overdue tags, and action controls.
     """
-    tasks = database.get_study_plan(DB_FILE)
-    completed_tasks = database.get_completed_tasks(DB_FILE)
+    tasks = database.get_study_plan(get_db())
+    completed_tasks = database.get_completed_tasks(get_db())
     return render_template(
         "study_plan.html",
         tasks=tasks,
@@ -210,7 +210,7 @@ def edit_task(task_id):
     Edit Task Page:
     Loads existing task, validates changes, recalculates priority score and updates database.
     """
-    task = database.get_task_by_id(task_id, DB_FILE)
+    task = database.get_task_by_id(task_id, get_db())
     if not task:
         flash("Task not found", "danger")
         return redirect(url_for("dashboard"))
@@ -256,7 +256,7 @@ def edit_task(task_id):
                 importance=imp_int,
                 estimated_hours=hours_float,
                 status=status,
-                db_path=DB_FILE
+                db_path=get_db()
             )
             flash("Task updated successfully", "success")
             return redirect(url_for("study_plan"))
@@ -270,7 +270,7 @@ def edit_task(task_id):
 @app.route("/complete-task/<int:task_id>", methods=["POST"])
 def complete_task(task_id):
     """Marks task as completed."""
-    success = database.complete_task(task_id, DB_FILE)
+    success = database.complete_task(task_id, get_db())
     if success:
         flash("Task marked as completed", "success")
     else:
@@ -283,7 +283,7 @@ def complete_task(task_id):
 @app.route("/delete-task/<int:task_id>", methods=["POST"])
 def delete_task(task_id):
     """Deletes task from database."""
-    success = database.delete_task(task_id, DB_FILE)
+    success = database.delete_task(task_id, get_db())
     if success:
         flash("Task deleted successfully", "success")
     else:
@@ -323,7 +323,7 @@ def export_calendar():
     Exports all pending tasks as an RFC-5545 iCalendar (.ics) file.
     Can be directly imported into Google Calendar, Apple Calendar, or Outlook.
     """
-    tasks = database.get_pending_tasks(DB_FILE)
+    tasks = database.get_pending_tasks(get_db())
     
     lines = [
         "BEGIN:VCALENDAR",
@@ -539,7 +539,7 @@ def simulate_priority():
 @app.route("/clear-all-tasks", methods=["POST"])
 def clear_all_tasks():
     """Clears all tasks from database so the user can test with a clean slate."""
-    database.clear_all_tasks(DB_FILE)
+    database.clear_all_tasks(get_db())
     flash("All previous tasks have been deleted. You can now test with your own inputs!", "info")
     return redirect(url_for("dashboard"))
 
@@ -547,8 +547,8 @@ def clear_all_tasks():
 @app.route("/seed-sample-tasks", methods=["POST"])
 def seed_sample_tasks():
     """Loads sample tasks for demonstration."""
-    database.clear_all_tasks(DB_FILE)
-    database.seed_sample_tasks(DB_FILE)
+    database.clear_all_tasks(get_db())
+    database.seed_sample_tasks(get_db())
     flash("Sample tasks loaded successfully.", "info")
     return redirect(url_for("dashboard"))
 
