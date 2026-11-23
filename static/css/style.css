@@ -1178,6 +1178,27 @@ code {
     border-radius: var(--radius-btn);
 }
 
+.formula-factors-mobile {
+    display: none;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.factor-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--primary-light);
+    border: 1px solid #FFD4B8;
+    color: var(--primary-hover);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 .section-title-bar {
     display: flex;
     justify-content: space-between;
@@ -1355,6 +1376,12 @@ code {
 
 /* Responsive Adjustments */
 @media (max-width: 860px) {
+    .desktop-formula {
+        display: none;
+    }
+    .formula-factors-mobile {
+        display: flex;
+    }
     .priority-card {
         grid-template-columns: 1fr;
         gap: var(--spacing-md);
