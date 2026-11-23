@@ -7,14 +7,22 @@ def record_visual_audit():
     os.makedirs("screenshots/responsive", exist_ok=True)
 
     viewports = [
-        {"name": "mobile_320", "width": 320, "height": 640},
-        {"name": "mobile_375", "width": 375, "height": 667},
-        {"name": "mobile_414", "width": 414, "height": 896},
-        {"name": "tablet_768", "width": 768, "height": 1024},
-        {"name": "tablet_820", "width": 820, "height": 1180},
-        {"name": "laptop_1024", "width": 1024, "height": 768},
-        {"name": "desktop_1440", "width": 1440, "height": 900},
-        {"name": "ultrawide_1920", "width": 1920, "height": 1080},
+        {"name": "mobile_320x568", "width": 320, "height": 568},
+        {"name": "mobile_360x640", "width": 360, "height": 640},
+        {"name": "mobile_375x812", "width": 375, "height": 812},
+        {"name": "mobile_390x844", "width": 390, "height": 844},
+        {"name": "mobile_414x896", "width": 414, "height": 896},
+        {"name": "mobile_430x932", "width": 430, "height": 932},
+        {"name": "mobile_480x800", "width": 480, "height": 800},
+        {"name": "foldable_600x900", "width": 600, "height": 900},
+        {"name": "tablet_768x1024", "width": 768, "height": 1024},
+        {"name": "tablet_820x1180", "width": 820, "height": 1180},
+        {"name": "laptop_1024x768", "width": 1024, "height": 768},
+        {"name": "laptop_1280x720", "width": 1280, "height": 720},
+        {"name": "laptop_1366x768", "width": 1366, "height": 768},
+        {"name": "desktop_1440x900", "width": 1440, "height": 900},
+        {"name": "desktop_1600x900", "width": 1600, "height": 900},
+        {"name": "desktop_1920x1080", "width": 1920, "height": 1080},
     ]
 
     routes = [

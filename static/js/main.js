@@ -237,7 +237,7 @@ function setSmartDate(daysToAdd) {
 }
 
 /* ==========================================================================
-   2. Focus Kitchen Pomodoro Timer
+   2. Focus Kitchen Pomodoro Timer (Drift-Free Timestamp Engine)
    ========================================================================== */
 
 let pomoInterval = null;
@@ -245,6 +245,7 @@ let pomoTimeLeft = 25 * 60;
 let pomoTotalTime = 25 * 60;
 let pomoIsRunning = false;
 let pomoCurrentTaskId = null;
+let pomoEndTime = null;
 
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 100; // r = 100
 
@@ -275,6 +276,7 @@ function setPomoDuration(minutes, buttonElem) {
     if (pomoIsRunning) togglePomodoro();
     pomoTotalTime = minutes * 60;
     pomoTimeLeft = pomoTotalTime;
+    pomoEndTime = null;
     
     document.querySelectorAll(".pomo-mode-btn").forEach(btn => btn.classList.remove("active"));
     if (buttonElem) buttonElem.classList.add("active");
@@ -290,20 +292,32 @@ function togglePomodoro() {
     const statusText = document.getElementById("pomoStatusText");
 
     if (pomoIsRunning) {
-        // Pause
-        clearInterval(pomoInterval);
+        // Pause session: calculate exact time remaining and freeze
+        if (pomoInterval) clearInterval(pomoInterval);
+        pomoInterval = null;
         pomoIsRunning = false;
+        if (pomoEndTime) {
+            pomoTimeLeft = Math.max(0, Math.round((pomoEndTime - Date.now()) / 1000));
+            pomoEndTime = null;
+        }
         if (startBtn) startBtn.innerHTML = "▶ Resume Session";
         if (statusText) statusText.textContent = "Paused";
+        updatePomoDisplay();
     } else {
-        // Start
+        // Start or resume session: anchor target completion timestamp
         pomoIsRunning = true;
+        pomoEndTime = Date.now() + pomoTimeLeft * 1000;
         playStartSound();
         if (startBtn) startBtn.innerHTML = "⏸ Pause Session";
         if (statusText) statusText.textContent = "Focusing...";
 
+        // Initial tick immediate sync
+        updatePomoDisplay();
+
         pomoInterval = setInterval(() => {
-            pomoTimeLeft--;
+            if (!pomoEndTime) return;
+            const remaining = Math.max(0, Math.round((pomoEndTime - Date.now()) / 1000));
+            pomoTimeLeft = remaining;
             updatePomoDisplay();
             if (tickingEnabled) {
                 playTickSound();
@@ -311,7 +325,9 @@ function togglePomodoro() {
 
             if (pomoTimeLeft <= 0) {
                 clearInterval(pomoInterval);
+                pomoInterval = null;
                 pomoIsRunning = false;
+                pomoEndTime = null;
                 onPomodoroFinished();
             }
         }, 1000);
@@ -319,8 +335,10 @@ function togglePomodoro() {
 }
 
 function resetPomodoro() {
-    clearInterval(pomoInterval);
+    if (pomoInterval) clearInterval(pomoInterval);
+    pomoInterval = null;
     pomoIsRunning = false;
+    pomoEndTime = null;
     pomoTimeLeft = pomoTotalTime;
     
     const startBtn = document.getElementById("pomoStartBtn");
@@ -330,6 +348,22 @@ function resetPomodoro() {
     
     updatePomoDisplay();
 }
+
+// Background Tab Sync using Page Visibility API (prevents browser timer throttling drift)
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && pomoIsRunning && pomoEndTime) {
+        const remaining = Math.max(0, Math.round((pomoEndTime - Date.now()) / 1000));
+        pomoTimeLeft = remaining;
+        updatePomoDisplay();
+        if (pomoTimeLeft <= 0) {
+            if (pomoInterval) clearInterval(pomoInterval);
+            pomoInterval = null;
+            pomoIsRunning = false;
+            pomoEndTime = null;
+            onPomodoroFinished();
+        }
+    }
+});
 
 function updatePomoDisplay() {
     const timerText = document.getElementById("pomoTimerText");
