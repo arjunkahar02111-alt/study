@@ -27,6 +27,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "smart-study-planner-secret-key-20
 # Database path
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
 
+def get_db():
+    """Returns the active database file path, allowing dynamic testing overrides."""
+    return app.config.get("DB_FILE", DB_FILE)
+
 MOTIVATIONAL_QUOTES = [
     {"quote": "It always seems impossible until it's done.", "author": "Nelson Mandela"},
     {"quote": "Live as if you were to die tomorrow. Learn as if you were to live forever.", "author": "Mahatma Gandhi"},
@@ -49,9 +53,16 @@ setup_application()
 
 @app.context_processor
 def inject_today():
-    """Injects current date and helper statistics into all Jinja templates."""
+    """Injects current date and active tracking session into all Jinja templates."""
     today = date.today()
-    return {"current_date": today}
+    try:
+        active_session = database.get_active_session(get_db())
+    except Exception:
+        active_session = None
+    return {
+        "current_date": today,
+        "active_session": active_session
+    }
 
 
 @app.route("/")
@@ -65,11 +76,12 @@ def dashboard():
     """
     filter_type = request.args.get("filter", "all").lower()
 
-    all_tasks = database.get_all_tasks(DB_FILE)
-    pending_tasks = database.get_pending_tasks(DB_FILE)
-    completed_tasks = database.get_completed_tasks(DB_FILE)
-    overdue_tasks = database.get_overdue_tasks(DB_FILE)
-    upcoming_tasks = database.get_upcoming_tasks(days_ahead=7, db_path=DB_FILE)
+    db_target = get_db()
+    all_tasks = database.get_all_tasks(db_target)
+    pending_tasks = database.get_pending_tasks(db_target)
+    completed_tasks = database.get_completed_tasks(db_target)
+    overdue_tasks = database.get_overdue_tasks(db_target)
+    upcoming_tasks = database.get_upcoming_tasks(days_ahead=7, db_path=db_target)
 
     # Select tasks to show in the main table based on filter
     if filter_type == "pending":
@@ -141,13 +153,13 @@ def add_task():
         try:
             diff_int = int(difficulty)
             imp_int = int(importance)
-            hours_float = float(estimated_hours)
+            hours_float = float(estimated_hours) if estimated_hours else None
         except (ValueError, TypeError):
             flash("Invalid input", "danger")
             return render_template("add_task.html", form_data=request.form), 400
 
-        # IF difficulty < 1 OR difficulty > 5 OR importance < 1 OR importance > 5 OR estimated_hours <= 0 THEN
-        if diff_int < 1 or diff_int > 5 or imp_int < 1 or imp_int > 5 or hours_float <= 0:
+        # Boundary checks: difficulty 1-5, importance 1-5, target hours > 0 if entered
+        if diff_int < 1 or diff_int > 5 or imp_int < 1 or imp_int > 5 or (hours_float is not None and hours_float <= 0):
             flash("Invalid input", "danger")
             return render_template("add_task.html", form_data=request.form), 400
 
@@ -219,12 +231,12 @@ def edit_task(task_id):
         try:
             diff_int = int(difficulty)
             imp_int = int(importance)
-            hours_float = float(estimated_hours)
+            hours_float = float(estimated_hours) if estimated_hours else None
         except (ValueError, TypeError):
             flash("Invalid input", "danger")
             return render_template("edit_task.html", task=task, form_data=request.form), 400
 
-        if diff_int < 1 or diff_int > 5 or imp_int < 1 or imp_int > 5 or hours_float <= 0:
+        if diff_int < 1 or diff_int > 5 or imp_int < 1 or imp_int > 5 or (hours_float is not None and hours_float <= 0):
             flash("Invalid input", "danger")
             return render_template("edit_task.html", task=task, form_data=request.form), 400
 
@@ -292,12 +304,10 @@ def preview_priority():
         deadline = data.get("deadline")
         difficulty = int(data.get("difficulty", 3))
         importance = int(data.get("importance", 3))
-        estimated_hours = float(data.get("estimated_hours", 2.0))
+        raw_hours = data.get("estimated_hours")
+        hours_val = float(raw_hours) if raw_hours and str(raw_hours).strip() and float(raw_hours) > 0 else None
 
-        if not deadline:
-            return jsonify({"error": "Deadline required"}), 400
-
-        score = calculate_priority(deadline, difficulty, importance, estimated_hours)
+        score = calculate_priority(deadline, difficulty, importance, hours_val)
         overdue = is_overdue(deadline)
         return jsonify({
             "priority_score": score,
@@ -369,7 +379,7 @@ def add_subtask(task_id):
     if not title:
         return jsonify({"error": "Subtask title is required"}), 400
     try:
-        subtask_id = database.add_subtask(task_id, title, DB_FILE)
+        subtask_id = database.add_subtask(task_id, title, get_db())
         return jsonify({"success": True, "subtask_id": subtask_id, "title": title})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -378,7 +388,7 @@ def add_subtask(task_id):
 @app.route("/api/subtasks/<int:subtask_id>/toggle", methods=["POST"])
 def toggle_subtask(subtask_id):
     """Toggles completion status of a subtask."""
-    success = database.toggle_subtask(subtask_id, DB_FILE)
+    success = database.toggle_subtask(subtask_id, get_db())
     if success:
         return jsonify({"success": True})
     return jsonify({"error": "Subtask not found"}), 404
@@ -387,7 +397,7 @@ def toggle_subtask(subtask_id):
 @app.route("/api/subtasks/<int:subtask_id>/delete", methods=["POST"])
 def delete_subtask(subtask_id):
     """Deletes a subtask."""
-    success = database.delete_subtask(subtask_id, DB_FILE)
+    success = database.delete_subtask(subtask_id, get_db())
     if success:
         return jsonify({"success": True})
     return jsonify({"error": "Subtask not found"}), 404
@@ -401,11 +411,89 @@ def log_session():
         task_id = data.get("task_id")
         task_id = int(task_id) if task_id else None
         minutes = int(data.get("minutes", 25))
-        session_id = database.log_study_session(task_id, minutes, DB_FILE)
-        streak = database.get_study_streak(DB_FILE)
+        session_id = database.log_study_session(task_id, minutes, get_db())
+        streak = database.get_study_streak(get_db())
         return jsonify({"success": True, "session_id": session_id, "streak": streak})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+# =============================================================================
+# Real-Time Time Intelligence & Active Session APIs
+# =============================================================================
+
+@app.route("/api/active-session")
+def get_active_session_api():
+    """Returns the current active tracking session (if any) with live elapsed seconds."""
+    active = database.get_active_session(get_db())
+    return jsonify(active or {"has_active": False})
+
+
+@app.route("/api/time-tracking/start", methods=["POST"])
+def start_time_tracking():
+    """Starts or resumes tracking for a specific task."""
+    data = request.get_json(silent=True) or request.form
+    try:
+        task_id = int(data.get("task_id", 0))
+        force = bool(data.get("force", False) or data.get("force_switch", False))
+        result = database.start_tracking_session(task_id, force=force, db_path=get_db())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/time-tracking/pause", methods=["POST"])
+def pause_time_tracking():
+    """Pauses the currently active session without losing accumulated seconds."""
+    try:
+        result = database.pause_tracking_session(get_db())
+        return jsonify(result or {"paused": False})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/time-tracking/resume", methods=["POST"])
+def resume_time_tracking():
+    """Resumes the paused tracking session."""
+    try:
+        result = database.resume_tracking_session(get_db())
+        return jsonify(result or {"resumed": False})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/time-tracking/stop", methods=["POST"])
+def stop_time_tracking():
+    """Stops the active session and commits its duration."""
+    try:
+        result = database.stop_tracking_session(get_db())
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/tasks/<int:task_id>/sessions")
+def get_task_sessions_api(task_id):
+    """Retrieves session history for a specific task."""
+    try:
+        sessions = database.get_task_sessions(task_id, get_db())
+        return jsonify({"task_id": task_id, "sessions": sessions, "total_sessions": len(sessions)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/time-intelligence")
+def time_intelligence():
+    """
+    Dedicated SYNTRIQ Time Intelligence Dashboard:
+    - Today's, week's, month's, and total recorded focus time
+    - Subject-wise actual time breakdown
+    - Chronological session timeline
+    - Completed task focus analytics
+    - Contextual real-data insights
+    """
+    intel = database.get_time_intelligence_data(get_db())
+    return render_template("time_intelligence.html", intel=intel)
 
 
 @app.route("/api/simulate-priority", methods=["POST"])

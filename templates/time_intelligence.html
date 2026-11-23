@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Time Intelligence Analytics{% endblock %}
+
+{% block content %}
+<div class="time-intel-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div class="header-intro">
+            <div class="badge-intel-pill">
+                <span class="live-pulse-dot"></span>
+                SYNTRIQ REAL-TIME ENGINE
+            </div>
+            <h1 class="page-title">Time Intelligence</h1>
+            <p class="page-subtitle">Know where your time goes. Improve how you study. Measured from real recorded focus sessions.</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn btn-primary" onclick="openPomodoroModal();">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -2px; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Focus Session
+            </button>
+            <a href="{{ url_for('study_plan') }}" class="btn btn-outline">Study Plan</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Overview Metric Cards Grid -->
+    <div class="stats-grid time-stats-grid">
+        <div class="stat-card" style="--stagger: 0;">
+            <div class="stat-icon stat-upcoming">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Today's Focus</span>
+                <span class="stat-value text-primary">{{ intel.today_formatted }}</span>
+            </div>
+        </div>
+        <div class="stat-card" style="--stagger: 1;">
+            <div class="stat-icon stat-total">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">This Week</span>
+                <span class="stat-value">{{ intel.week_formatted }}</span>
+            </div>
+        </div>
+        <div class="stat-card" style="--stagger: 2;">
+            <div class="stat-icon stat-pending">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">This Month</span>
+                <span class="stat-value">{{ intel.month_formatted }}</span>
+            </div>
+        </div>
+        <div class="stat-card" style="--stagger: 3;">
+            <div class="stat-icon stat-completed">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Total Recorded Time</span>
+                <span class="stat-value text-success">{{ intel.total_formatted }}</span>
+            </div>
+        </div>
+        <div class="stat-card" style="--stagger: 4;">
+            <div class="stat-icon stat-overdue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div class="stat-info">
+                <span class="stat-label">Active Streak</span>
+                <span class="stat-value">{{ intel.streak_days }} Day{% if intel.streak_days != 1 %}s{% endif %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Contextual Insights Banner -->
+    <div class="card smart-insights-card">
+        <div class="card-header-compact">
+            <h3 class="compact-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" style="vertical-align: -3px; margin-right: 6px;"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
+                Contextual Study Insights
+            </h3>
+            <span class="compact-hint">Generated dynamically from genuine focus records</span>
+        </div>
+        <div class="insights-body">
+            <ul class="insights-list">
+                {% for item in intel.insights %}
+                <li class="insight-item">
+                    <span class="insight-bullet">▸</span>
+                    <span class="insight-text">{{ item }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Subject Breakdown & Completed Analytics Row -->
+    <div class="intel-columns-grid">
+        <!-- Subject-Wise Time Distribution -->
+        <div class="card intel-card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Subject-Wise Time Distribution</h2>
+                    <span class="card-subtitle">Actual recorded focus hours per course</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if intel.subject_breakdown %}
+                <div class="subject-bars-list">
+                    {% for sub in intel.subject_breakdown %}
+                    <div class="subject-bar-item">
+                        <div class="subject-bar-header">
+                            <span class="subject-bar-name">{{ sub.subject }}</span>
+                            <span class="subject-bar-duration">{{ sub.formatted }} <small class="text-muted">({{ sub.percent }}%)</small></span>
+                        </div>
+                        <div class="subject-track">
+                            <div class="subject-fill" style="width: {{ sub.percent }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state empty-state-compact">
+                    <p class="text-muted">No focus sessions recorded yet. Start tracking time on a task to view subject analytics.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Task Completion Analytics -->
+        <div class="card intel-card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Completed Task Focus vs Calendar Span</h2>
+                    <span class="card-subtitle">Actual work hours compared to days from start to finish</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if intel.completed_analytics %}
+                <div class="completed-analytics-list">
+                    {% for item in intel.completed_analytics %}
+                    <div class="completed-analytic-item">
+                        <div class="analytic-header">
+                            <span class="subject-tag">{{ item.task_subject }}</span>
+                            <span class="analytic-title">{{ item.task_title }}</span>
+                        </div>
+                        <div class="analytic-metrics">
+                            <span class="analytic-badge badge-focus">
+                                <strong>Focus Time:</strong> {{ item.focus_formatted }}
+                            </span>
+                            <span class="analytic-badge badge-calendar">
+                                <strong>Calendar Span:</strong> {{ item.calendar_span }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state empty-state-compact">
+                    <p class="text-muted">Completed tasks with tracked sessions will appear here with focus vs calendar span analytics.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Chronological Session History Timeline -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <div>
+                <h2 class="card-title">Focus Session History</h2>
+                <span class="card-subtitle">Chronological log of verified user study sessions</span>
+            </div>
+            <span class="badge badge-info">{{ intel.total_sessions_count }} Session{% if intel.total_sessions_count != 1 %}s{% endif %} Logged</span>
+        </div>
+        <div class="card-body p-0">
+            {% if intel.recent_sessions %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time Window</th>
+                            <th>Subject</th>
+                            <th>Task Assignment</th>
+                            <th>Tracked Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sess in intel.recent_sessions %}
+                        <tr>
+                            <td data-label="Date"><code>{{ sess.date }}</code></td>
+                            <td data-label="Time Window">{{ sess.time_range }}</td>
+                            <td data-label="Subject"><span class="subject-tag">{{ sess.task_subject }}</span></td>
+                            <td data-label="Task Assignment"><strong>{{ sess.task_title }}</strong></td>
+                            <td data-label="Tracked Duration"><span class="priority-pill badge-warning">⏱ {{ sess.duration_formatted }}</span></td>
+                            <td data-label="Status"><span class="badge badge-success">{{ sess.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding: 40px 20px;">
+                <h3>No sessions recorded yet</h3>
+                <p>When you start a study session or track work on an assignment, every focus session is recorded here with second-level precision.</p>
+                <a href="{{ url_for('study_plan') }}" class="btn btn-primary">Go to Study Plan</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

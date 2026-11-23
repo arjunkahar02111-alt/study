@@ -203,7 +203,7 @@
                             <th>Subject</th>
                             <th>Deadline</th>
                             <th>Diff / Imp</th>
-                            <th>Est. Hours</th>
+                            <th>Tracked Time</th>
                             <th>Priority Score</th>
                             <th>Status</th>
                             <th style="text-align: right;">Actions</th>
@@ -248,8 +248,21 @@
                                     <span title="Importance (1-5)" class="rating-item"><small>Imp:</small> <strong>{{ task.Task_Importance }}</strong>/5</span>
                                 </div>
                             </td>
-                            <td data-label="Est. Hours">
-                                <span class="hours-tag">{{ task.Estimated_Hours }} hrs</span>
+                            <td data-label="Tracked Time">
+                                <div class="time-tracking-cell">
+                                    {% if task.total_tracked_seconds and task.total_tracked_seconds > 0 %}
+                                        <span class="tracked-time-tag" title="Actual Recorded Focus Time">
+                                            ⏱ {{ task.tracked_time_formatted }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted" style="font-size: 0.85rem;">Untracked</span>
+                                    {% endif %}
+                                    {% if task.Target_Hours %}
+                                        <small class="text-muted d-block" style="font-size: 0.72rem; margin-top: 2px;">Target: {{ task.Target_Hours }}h</small>
+                                    {% elif task.Estimated_Hours %}
+                                        <small class="text-muted d-block" style="font-size: 0.72rem; margin-top: 2px;">Target: {{ task.Estimated_Hours }}h</small>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td data-label="Priority Score">
                                 <span class="priority-pill {{ task.badge_class }}">
@@ -266,6 +279,9 @@
                             <td data-label="Actions" class="actions-cell-mobile" style="text-align: right;">
                                 <div class="actions-group">
                                     {% if task.Task_Status == 'Pending' %}
+                                    <button type="button" class="btn-action btn-track-time {% if active_session and active_session.task_id == task.Task_ID %}active-tracking{% endif %}" onclick="toggleTimeTracking({{ task.Task_ID }});" title="{% if active_session and active_session.task_id == task.Task_ID %}Session Active - View / Manage{% else %}Track Study Time for this task{% endif %}">
+                                        ⏱
+                                    </button>
                                     <button type="button" class="btn-action btn-pomo" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session for this task">
                                         ⚡
                                     </button>

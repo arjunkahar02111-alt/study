@@ -33,6 +33,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, DB_FILE
 import database
+import tempfile
+import gc
 from priority_calculator import calculate_priority
 
 
@@ -43,11 +45,18 @@ class Syntriq3MasterTestSuite(unittest.TestCase):
         cls.client = app.test_client()
 
     def setUp(self):
-        # Fresh isolated test database
-        self.test_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_syntriq3.db")
+        # Fresh isolated test database in tempdir
+        self.temp_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        self.test_db = self.temp_file.name
+        self.temp_file.close()
+        app.config["DB_FILE"] = self.test_db
+        self._orig_db = database.DEFAULT_DB_PATH
+        database.DEFAULT_DB_PATH = self.test_db
         database.init_db(self.test_db)
 
     def tearDown(self):
+        gc.collect()
+        database.DEFAULT_DB_PATH = self._orig_db
         if os.path.exists(self.test_db):
             try:
                 os.remove(self.test_db)

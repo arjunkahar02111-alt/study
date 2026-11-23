@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initSoundSystem();
     initMobileNav();
     animateNumberCounters();
+    initTimeTracking();
 });
 
 /* ==========================================================================
@@ -137,9 +138,10 @@ function initPriorityPreview() {
         const deadlineVal = deadlineInput.value;
         const diffVal = parseInt(difficultyInput.value, 10);
         const impVal = parseInt(importanceInput.value, 10);
-        const hoursVal = parseFloat(hoursInput.value);
+        const rawHours = hoursInput ? hoursInput.value.trim() : "";
+        const hoursVal = rawHours !== "" ? parseFloat(rawHours) : null;
 
-        if (!deadlineVal || isNaN(diffVal) || isNaN(impVal) || isNaN(hoursVal) || hoursVal <= 0) {
+        if (!deadlineVal || isNaN(diffVal) || isNaN(impVal)) {
             scoreDisplay.textContent = "--";
             categoryDisplay.textContent = "Fill in details to calculate";
             categoryDisplay.className = "score-category text-muted";
@@ -169,13 +171,17 @@ function initPriorityPreview() {
         else if (daysRemaining <= 14) urgency = 2;
         else urgency = 1;
 
-        // Workload algorithm matching pseudocode
-        let workload = 1;
-        if (hoursVal >= 6.0) workload = 5;
-        else if (hoursVal >= 4.0) workload = 4;
-        else if (hoursVal >= 2.0) workload = 3;
-        else if (hoursVal >= 1.0) workload = 2;
-        else workload = 1;
+        // Workload algorithm matching pseudocode (neutral 3.0 when omitted)
+        let workload = 3;
+        let workloadLabel = "3/5 (Neutral)";
+        if (hoursVal !== null && !isNaN(hoursVal) && hoursVal > 0) {
+            if (hoursVal >= 6.0) workload = 5;
+            else if (hoursVal >= 4.0) workload = 4;
+            else if (hoursVal >= 2.0) workload = 3;
+            else if (hoursVal >= 1.0) workload = 2;
+            else workload = 1;
+            workloadLabel = `${workload}/5 (${hoursVal}h)`;
+        }
 
         // Composite priority score formula
         const priorityScore = (0.4 * urgency) + (0.3 * impVal) + (0.2 * diffVal) + (0.1 * workload);
@@ -189,7 +195,7 @@ function initPriorityPreview() {
         }
         if (importanceDisplay) importanceDisplay.textContent = `${impVal}/5`;
         if (difficultyDisplay) difficultyDisplay.textContent = `${diffVal}/5`;
-        if (workloadDisplay) workloadDisplay.textContent = `${workload}/5 (${hoursVal}h)`;
+        if (workloadDisplay) workloadDisplay.textContent = workloadLabel;
 
         // Category style
         if (priorityScore >= 4.0) {
@@ -1002,4 +1008,247 @@ function initAlertAutoDismiss() {
             setTimeout(() => alert.remove(), 400);
         }, 5500);
     });
+}
+
+/* ==========================================================================
+   8. SYNTRIQ 3.1 Real-Time Time Intelligence Engine
+   ========================================================================== */
+
+let activeSessionState = null;
+let activeSessionInterval = null;
+let activeSessionClientSyncTime = 0;
+let pendingSwitchTaskId = null;
+
+function initTimeTracking() {
+    fetchActiveSession();
+    // Re-sync with server periodically (every 25 seconds) to ensure clock parity
+    setInterval(fetchActiveSession, 25000);
+
+    // Sync immediately when browser tab regains visibility (prevents background throttle drift)
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            fetchActiveSession();
+        }
+    });
+}
+
+function fetchActiveSession() {
+    fetch("/api/active-session")
+        .then(res => res.json())
+        .then(data => {
+            syncActiveSessionUI(data);
+        })
+        .catch(err => console.warn("Active session sync notice:", err));
+}
+
+function syncActiveSessionUI(data) {
+    activeSessionState = data;
+    const widget = document.getElementById("activeSessionWidget");
+    if (!widget) return;
+
+    if (!data || !data.has_active) {
+        widget.style.display = "none";
+        if (activeSessionInterval) {
+            clearInterval(activeSessionInterval);
+            activeSessionInterval = null;
+        }
+        // Deactivate all tracking button indicators
+        document.querySelectorAll(".btn-track-time, .track-task-btn").forEach(btn => {
+            btn.classList.remove("active-tracking");
+            const textSpan = btn.querySelector(".track-btn-text");
+            if (textSpan) textSpan.textContent = "Track Time";
+        });
+        return;
+    }
+
+    // Active session present! Show floating widget
+    widget.style.display = "flex";
+
+    const titleEl = document.getElementById("activeWidgetTitle");
+    const subjectEl = document.getElementById("activeWidgetSubject");
+    const digitsEl = document.getElementById("activeWidgetDigits");
+    const statusEl = document.getElementById("activeWidgetStatus");
+    const pauseBtn = document.getElementById("activeWidgetPauseBtn");
+
+    if (titleEl) titleEl.textContent = data.task_title || "Study Session";
+    if (subjectEl) subjectEl.textContent = data.task_subject || "Focus";
+
+    // Mark corresponding task button as active
+    document.querySelectorAll(".btn-track-time, .track-task-btn").forEach(btn => {
+        btn.classList.remove("active-tracking");
+        const textSpan = btn.querySelector(".track-btn-text");
+        if (textSpan) textSpan.textContent = "Track Time";
+    });
+
+    const activeBtns = document.querySelectorAll(`.track-btn-${data.task_id}`);
+    activeBtns.forEach(btn => {
+        btn.classList.add("active-tracking");
+        const textSpan = btn.querySelector(".track-btn-text");
+        if (textSpan) textSpan.textContent = data.is_paused ? "Paused" : "Tracking...";
+    });
+
+    if (data.is_paused) {
+        if (statusEl) {
+            statusEl.textContent = "PAUSED";
+            statusEl.classList.add("status-paused");
+        }
+        if (pauseBtn) {
+            pauseBtn.innerHTML = "▶";
+            pauseBtn.title = "Resume Focus Session";
+            pauseBtn.classList.add("paused");
+        }
+        widget.classList.add("widget-paused");
+    } else {
+        if (statusEl) {
+            statusEl.textContent = "FOCUSING";
+            statusEl.classList.remove("status-paused");
+        }
+        if (pauseBtn) {
+            pauseBtn.innerHTML = "⏸";
+            pauseBtn.title = "Pause Focus Session";
+            pauseBtn.classList.remove("paused");
+        }
+        widget.classList.remove("widget-paused");
+    }
+
+    // Anchor time calculations with drift-free client offset
+    activeSessionClientSyncTime = Date.now() / 1000;
+
+    function renderActiveDigits() {
+        let currentElapsed = data.elapsed_seconds || 0;
+        if (!data.is_paused) {
+            const clientDelta = (Date.now() / 1000) - activeSessionClientSyncTime;
+            currentElapsed = Math.round((data.elapsed_seconds || 0) + clientDelta);
+        }
+        if (digitsEl) {
+            digitsEl.textContent = formatDurationHms(currentElapsed);
+        }
+    }
+
+    renderActiveDigits();
+
+    if (activeSessionInterval) clearInterval(activeSessionInterval);
+    if (!data.is_paused) {
+        activeSessionInterval = setInterval(renderActiveDigits, 1000);
+    }
+}
+
+function formatDurationHms(totalSeconds) {
+    totalSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function toggleTimeTracking(taskId) {
+    if (activeSessionState && activeSessionState.has_active) {
+        if (activeSessionState.task_id === taskId) {
+            // Clicked active session task: toggle pause/resume
+            toggleActiveSessionPause();
+            return;
+        } else {
+            // Single authoritative session constraint: show switch confirmation
+            pendingSwitchTaskId = taskId;
+            const modal = document.getElementById("switchTaskModal");
+            const msg = document.getElementById("switchTaskMessage");
+            if (msg) {
+                msg.textContent = `You are currently tracking "${activeSessionState.task_title}". SYNTRIQ enforces one active study session at a time. Would you like to stop it and switch?`;
+            }
+            if (modal) modal.style.display = "flex";
+            return;
+        }
+    }
+
+    // Start tracking new task
+    fetch("/api/time-tracking/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: taskId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.has_conflict) {
+            pendingSwitchTaskId = taskId;
+            const modal = document.getElementById("switchTaskModal");
+            const msg = document.getElementById("switchTaskMessage");
+            if (msg) {
+                msg.textContent = `You are currently tracking "${data.running_task.title}". Would you like to switch to this task?`;
+            }
+            if (modal) modal.style.display = "flex";
+        } else if (data.status === "started" || data.status === "resumed") {
+            playStartSound();
+            fetchActiveSession();
+        }
+    })
+    .catch(err => console.error("Start tracking error:", err));
+}
+
+function toggleActiveSessionPause() {
+    if (!activeSessionState || !activeSessionState.has_active) return;
+
+    const endpoint = activeSessionState.is_paused ? "/api/time-tracking/resume" : "/api/time-tracking/pause";
+    fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "paused") {
+            playPopSound();
+        } else if (data.status === "resumed") {
+            playStartSound();
+        }
+        fetchActiveSession();
+    })
+    .catch(err => console.error("Pause/resume error:", err));
+}
+
+function stopActiveTracking() {
+    if (!confirm("Stop and save this focus tracking session?")) return;
+
+    fetch("/api/time-tracking/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.json())
+    .then(data => {
+        playZenBell();
+        triggerConfetti();
+        fetchActiveSession();
+        // Give celebratory audio/confetti a brief moment before refreshing page to show updated tracked durations
+        setTimeout(() => {
+            window.location.reload();
+        }, 650);
+    })
+    .catch(err => console.error("Stop tracking error:", err));
+}
+
+function closeSwitchTaskModal() {
+    const modal = document.getElementById("switchTaskModal");
+    if (modal) modal.style.display = "none";
+    pendingSwitchTaskId = null;
+}
+
+function confirmSwitchActiveTask() {
+    if (!pendingSwitchTaskId) return;
+    const targetId = pendingSwitchTaskId;
+    closeSwitchTaskModal();
+
+    fetch("/api/time-tracking/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task_id: targetId, force_switch: true })
+    })
+    .then(res => res.json())
+    .then(data => {
+        playStartSound();
+        fetchActiveSession();
+        setTimeout(() => {
+            window.location.reload();
+        }, 450);
+    })
+    .catch(err => console.error("Switch tracking error:", err));
 }

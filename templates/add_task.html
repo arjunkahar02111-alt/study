@@ -19,7 +19,7 @@
         <div class="card form-card">
             <div class="card-header">
                 <h2 class="card-title">Task Information</h2>
-                <span class="card-subtitle">All fields are required</span>
+                <span class="card-subtitle">Required fields are marked with *</span>
             </div>
             <div class="card-body">
                 <form id="taskForm" action="{{ url_for('add_task') }}" method="POST" novalidate>
@@ -120,10 +120,10 @@
                         </div>
                     </div>
 
-                    <!-- Estimated Completion Time -->
+                    <!-- Target Duration (Optional) -->
                     <div class="form-group">
                         <label for="estimated_hours" class="form-label">
-                            Estimated Completion Time (Hours) <span class="text-danger">*</span>
+                            Target Duration in Hours (Optional)
                         </label>
                         <input 
                             type="number" 
@@ -132,11 +132,10 @@
                             class="form-control" 
                             min="0.25" 
                             step="0.25" 
-                            placeholder="e.g. 2.5"
-                            value="{{ form_data.get('estimated_hours', '2.0') }}" 
-                            required
+                            placeholder="e.g. 2.0 (Optional target, not an estimate)"
+                            value="{{ form_data.get('estimated_hours', '') }}"
                         >
-                        <small class="form-text">Estimated time needed in hours (> 0). Weight: 10% of priority score.</small>
+                        <small class="form-text">Optional target time. SYNTRIQ calculates actual real-time focus duration automatically when you track work.</small>
                     </div>
 
                     <!-- Action Buttons -->

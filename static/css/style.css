@@ -2878,6 +2878,495 @@ html, body {
     }
 }
 
+/* ==========================================================================
+   SYNTRIQ 3.1 Real-Time Time Intelligence & Active Session Widget
+   ========================================================================== */
+
+/* Persistent Floating Active Study Session Widget */
+.active-session-widget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    background: #111111;
+    color: #FFFFFF;
+    border: 1.5px solid rgba(255, 107, 0, 0.45);
+    border-radius: 999px;
+    padding: 8px 16px 8px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 20px rgba(255, 107, 0, 0.15);
+    backdrop-filter: blur(12px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    animation: slideUpWidget 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpWidget {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.active-widget-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Pulsing Live Tracking Dot */
+.active-pulse-indicator {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: var(--primary, #FF6B00);
+    opacity: 0.75;
+    animation: widgetPulse 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+}
+
+.pulse-core {
+    position: relative;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary, #FF6B00);
+}
+
+@keyframes widgetPulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    70% {
+        transform: scale(2.4);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(2.4);
+        opacity: 0;
+    }
+}
+
+.widget-paused .pulse-ring {
+    animation: none;
+    background: #FFB020;
+    opacity: 0.4;
+}
+
+.widget-paused .pulse-core {
+    background: #FFB020;
+}
+
+.active-widget-details {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    max-width: 190px;
+}
+
+.active-widget-subject {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary, #FF6B00);
+    line-height: 1.1;
+}
+
+.active-widget-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+
+.active-widget-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 0 4px;
+}
+
+.active-timer-digits {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+    line-height: 1.1;
+}
+
+.active-timer-status {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #48BB78;
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.active-timer-status.status-paused {
+    color: #FFB020;
+}
+
+.active-widget-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 4px;
+}
+
+.widget-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.widget-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: scale(1.05);
+}
+
+.widget-btn:active {
+    transform: scale(0.97);
+}
+
+.widget-btn-pause {
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.widget-btn-stop {
+    background: rgba(239, 68, 68, 0.2);
+    color: #F87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    padding: 5px 12px;
+    font-size: 0.78rem;
+}
+
+.widget-btn-stop:hover {
+    background: rgba(239, 68, 68, 0.35);
+    color: #FFFFFF;
+}
+
+/* Tracked Time Badge in Data Tables & Cards */
+.tracked-time-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm, 6px);
+    background: #FFF5EE;
+    border: 1px solid rgba(255, 107, 0, 0.25);
+    color: var(--primary-hover, #D95700);
+    font-weight: 700;
+    font-size: 0.84rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.btn-track-time {
+    transition: all 0.2s ease;
+}
+
+.btn-track-time.active-tracking,
+.track-task-btn.active-tracking {
+    background: var(--primary, #FF6B00) !important;
+    color: #FFFFFF !important;
+    border-color: var(--primary, #FF6B00) !important;
+    animation: trackingGlow 2s infinite ease-in-out;
+}
+
+@keyframes trackingGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(255, 107, 0, 0); }
+}
+
+/* Mobile Docking for Active Session Widget */
+@media (max-width: 768px) {
+    .active-session-widget {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 16px 16px 0 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        padding: 10px 16px;
+        justify-content: space-between;
+    }
+    .active-widget-inner {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .active-widget-details {
+        max-width: 130px;
+    }
+}
+
+/* Time Intelligence Page Specific Styles */
+.badge-intel-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--primary, #FF6B00);
+    background: rgba(255, 107, 0, 0.08);
+    border: 1px solid rgba(255, 107, 0, 0.22);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+}
+
+.live-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #48BB78;
+    box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.25);
+    animation: livePulse 2s infinite;
+}
+
+@keyframes livePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+.time-stats-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--spacing-md, 16px);
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+    .time-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .time-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .time-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Smart Contextual Insights Banner */
+.smart-insights-card {
+    border-left: 4px solid var(--primary, #FF6B00);
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFFDFB 100%);
+}
+
+.card-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color, #E8E6E1);
+}
+
+.compact-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary, #111111);
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.compact-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666666);
+    font-style: italic;
+}
+
+.insights-body {
+    padding: 16px 20px;
+}
+
+.insights-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.93rem;
+    line-height: 1.5;
+    color: var(--text-primary, #222222);
+}
+
+.insight-bullet {
+    color: var(--primary, #FF6B00);
+    font-weight: 800;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+/* Two-column layout for Subject Breakdown and Completed Analytics */
+.intel-columns-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+    .intel-columns-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.intel-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Subject Bar Progress Tracks */
+.subject-bars-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.subject-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.subject-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+}
+
+.subject-bar-name {
+    font-weight: 700;
+    color: var(--text-primary, #111111);
+}
+
+.subject-bar-duration {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--primary-hover, #D95700);
+}
+
+.subject-track {
+    width: 100%;
+    height: 10px;
+    background: #EFEFEF;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.subject-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FF8C33 0%, var(--primary, #FF6B00) 100%);
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Completed Analytics List */
+.completed-analytics-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.completed-analytic-item {
+    padding: 12px 14px;
+    background: #FAF9F7;
+    border: 1px solid var(--border-color, #E8E6E1);
+    border-radius: var(--radius-md, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.analytic-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.analytic-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--text-primary, #111111);
+}
+
+.analytic-metrics {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.analytic-badge {
+    font-size: 0.82rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.badge-focus {
+    background: #EDFDF2;
+    color: #2F855A;
+    border: 1px solid #C6F6D5;
+}
+
+.badge-calendar {
+    background: #EBF8FF;
+    color: #2B6CB0;
+    border: 1px solid #BEE3F8;
+}
+
 /* Print Stylesheet for Physical Study Checklist */
 @media print {
     .app-header, 
