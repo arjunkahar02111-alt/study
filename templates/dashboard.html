@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <!-- Motivational Banner & Streak -->
+    <div class="motivation-bar">
+        <div class="quote-text">
+            <span class="quote-icon">💡</span>
+            <span class="quote-content">"{{ quote.quote }}"</span>
+            <span class="quote-author">&mdash; {{ quote.author }}</span>
+        </div>
+        <div class="streak-badge-container">
+            <div class="streak-pill" title="Consecutive days with completed sessions or tasks">
+                <span class="streak-fire">🔥</span>
+                <span class="streak-count">{{ streak }} Day Streak</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Greeting and Quick Actions Header -->
+    <div class="page-header">
+        <div class="header-intro">
+            <h1 class="page-title">Study Dashboard</h1>
+            <p class="page-subtitle">Organize your academic tasks, monitor deadlines, and prioritize your study time efficiently.</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn btn-secondary" onclick="openPomodoroModal();">
+                ⚡ Focus Session
+            </button>
+            <a href="{{ url_for('export_calendar') }}" class="btn btn-outline" title="Download .ics file for Google / Apple Calendar">
+                📅 Sync Calendar (.ics)
+            </a>
+            <button type="button" class="btn btn-outline" onclick="window.print();" title="Print a physical daily study checklist">
+                🖨️ Print
+            </button>
+            <a href="{{ url_for('add_task') }}" class="btn btn-primary">
+                + Add New Task
+            </a>
+        </div>
+    </div>
+
+    <!-- Weekly Heatmap & Daily Workload Capacity Row -->
+    <div class="productivity-row">
+        <!-- 7-Day Weekly Heatmap -->
+        <div class="card heatmap-card">
+            <div class="card-header-compact">
+                <h3 class="compact-title">📅 7-Day Workload Heatmap</h3>
+                <span class="compact-hint">Deadlines across the next 7 days</span>
+            </div>
+            <div class="heatmap-strip">
+                {% for day in heatmap %}
+                <a href="{{ url_for('dashboard', filter='upcoming') }}" class="heatmap-day-chip intensity-{{ day.intensity }} {% if day.is_today %}chip-today{% endif %}" title="{{ day.date }}: {{ day.task_count }} task(s), {{ day.total_hours }} hrs">
+                    <span class="chip-day">{{ day.day_name }}</span>
+                    <span class="chip-num">{{ day.day_num }}</span>
+                    <span class="chip-stats">
+                        {% if day.task_count > 0 %}
+                            {{ day.task_count }}t &bull; {{ day.total_hours }}h
+                        {% else %}
+                            Free ✨
+                        {% endif %}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Daily Capacity Meter -->
+        <div class="card capacity-card {% if capacity.is_overloaded %}capacity-alert{% endif %}">
+            <div class="card-header-compact">
+                <h3 class="compact-title">⚡ Today's Workload Capacity</h3>
+                <span class="capacity-stat">{{ capacity.scheduled_hours }}h / {{ capacity.max_safe_hours }}h max</span>
+            </div>
+            <div class="capacity-body">
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill {% if capacity.is_overloaded %}fill-danger{% else %}fill-primary{% endif %}" style="width: {{ capacity.percent }}%;"></div>
+                </div>
+                <div class="capacity-footer-text">
+                    {% if capacity.is_overloaded %}
+                        <span class="text-danger"><strong>⚠️ Overload:</strong> Exceeds recommended 6h limit by {{ capacity.excess_hours }}h! Consider rescheduling low-priority items.</span>
+                    {% elif capacity.scheduled_hours > 0 %}
+                        <span class="text-secondary">Optimal study volume. You have {{ capacity.task_count }} task(s) on your agenda today.</span>
+                    {% else %}
+                        <span class="text-success">Zero urgent deadlines due today. Great day for deep focus!</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Metric Cards -->
+    <div class="stats-grid">
+        <a href="{{ url_for('dashboard', filter='all') }}" class="stat-card {% if filter_type == 'all' %}stat-card-active{% endif %}" style="--stagger: 0;">
+            <div class="stat-icon stat-total">🎯</div>
+            <div class="stat-info">
+                <span class="stat-label">All Tasks</span>
+                <span class="stat-value" data-counter="{{ stats.total }}">{{ stats.total }}</span>
+            </div>
+        </a>
+        <a href="{{ url_for('dashboard', filter='pending') }}" class="stat-card {% if filter_type == 'pending' %}stat-card-active{% endif %}" style="--stagger: 1;">
+            <div class="stat-icon stat-pending">⏳</div>
+            <div class="stat-info">
+                <span class="stat-label">Pending</span>
+                <span class="stat-value" data-counter="{{ stats.pending }}">{{ stats.pending }}</span>
+            </div>
+        </a>
+        <a href="{{ url_for('dashboard', filter='overdue') }}" class="stat-card stat-alert {% if filter_type == 'overdue' %}stat-card-active{% endif %}" style="--stagger: 2;">
+            <div class="stat-icon stat-overdue">🚨</div>
+            <div class="stat-info">
+                <span class="stat-label">Overdue</span>
+                <span class="stat-value text-danger" data-counter="{{ stats.overdue }}">{{ stats.overdue }}</span>
+            </div>
+        </a>
+        <a href="{{ url_for('dashboard', filter='upcoming') }}" class="stat-card {% if filter_type == 'upcoming' %}stat-card-active{% endif %}" style="--stagger: 3;">
+            <div class="stat-icon stat-upcoming">🔥</div>
+            <div class="stat-info">
+                <span class="stat-label">Upcoming (7d)</span>
+                <span class="stat-value text-primary" data-counter="{{ stats.upcoming }}">{{ stats.upcoming }}</span>
+            </div>
+        </a>
+        <a href="{{ url_for('dashboard', filter='completed') }}" class="stat-card {% if filter_type == 'completed' %}stat-card-active{% endif %}" style="--stagger: 4;">
+            <div class="stat-icon stat-completed">🏆</div>
+            <div class="stat-info">
+                <span class="stat-label">Completed</span>
+                <span class="stat-value text-success" data-counter="{{ stats.completed }}">{{ stats.completed }}</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Critical Attention Section (Overdue & Imminent Upcoming) -->
+    {% if overdue_tasks and filter_type != 'overdue' %}
+    <div class="alert-banner alert-banner-danger">
+        <div class="alert-banner-content">
+            <span class="banner-icon">🚨</span>
+            <div>
+                <strong>Attention Required:</strong> You have <strong>{{ overdue_tasks|length }}</strong> overdue task(s)! Prioritize these immediately in your study schedule.
+            </div>
+        </div>
+        <a href="{{ url_for('dashboard', filter='overdue') }}" class="btn btn-sm btn-outline-danger">Review Overdue</a>
+    </div>
+    {% endif %}
+
+    <!-- Filter Tabs / Segmented Control -->
+    <div class="tabs-header">
+        <div class="tabs-list">
+            <a href="{{ url_for('dashboard', filter='all') }}" class="tab-item {% if filter_type == 'all' %}active{% endif %}">
+                All Tasks <span class="tab-badge">{{ stats.total }}</span>
+            </a>
+            <a href="{{ url_for('dashboard', filter='pending') }}" class="tab-item {% if filter_type == 'pending' %}active{% endif %}">
+                Pending <span class="tab-badge">{{ stats.pending }}</span>
+            </a>
+            <a href="{{ url_for('dashboard', filter='overdue') }}" class="tab-item {% if filter_type == 'overdue' %}active text-danger{% endif %}">
+                Overdue <span class="tab-badge badge-danger">{{ stats.overdue }}</span>
+            </a>
+            <a href="{{ url_for('dashboard', filter='upcoming') }}" class="tab-item {% if filter_type == 'upcoming' %}active{% endif %}">
+                Upcoming (7 Days) <span class="tab-badge">{{ stats.upcoming }}</span>
+            </a>
+            <a href="{{ url_for('dashboard', filter='completed') }}" class="tab-item {% if filter_type == 'completed' %}active{% endif %}">
+                Completed <span class="tab-badge badge-success">{{ stats.completed }}</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Tasks Table Card -->
+    <div class="card table-card">
+        <div class="card-header">
+            <h2 class="card-title">{{ active_tab_title }}</h2>
+            <span class="card-subtitle">Showing {{ tasks|length }} task(s)</span>
+        </div>
+        <div class="card-body p-0">
+            {% if tasks %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Task Title</th>
+                            <th>Subject</th>
+                            <th>Deadline</th>
+                            <th>Diff / Imp</th>
+                            <th>Est. Hours</th>
+                            <th>Priority Score</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr class="{% if task.is_overdue and task.Task_Status == 'Pending' %}row-overdue{% endif %}" style="--stagger: {{ loop.index0 }};">
+                            <td class="text-muted" data-label="ID"><code>#{{ task.Task_ID }}</code></td>
+                            <td data-label="Task Title">
+                                <div class="task-title-cell">
+                                    <span class="task-name {% if task.Task_Status == 'Completed' %}task-completed-strikethrough{% endif %}">{{ task.Task_Title }}</span>
+                                    {% if task.is_overdue and task.Task_Status == 'Pending' %}
+                                        <span class="badge badge-overdue">OVERDUE</span>
+                                    {% elif task.days_remaining <= 1 and task.Task_Status == 'Pending' %}
+                                        <span class="badge badge-urgent">DUE TODAY/TOMORROW</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td data-label="Subject">
+                                <span class="subject-tag">{{ task.Task_Subject }}</span>
+                            </td>
+                            <td data-label="Deadline">
+                                <div class="deadline-cell">
+                                    <span class="deadline-date">{{ task.Task_Deadline }}</span>
+                                    {% if task.Task_Status == 'Pending' %}
+                                        {% if task.days_remaining < 0 %}
+                                            <span class="days-text text-danger">({{ task.days_remaining|abs }}d late)</span>
+                                        {% elif task.days_remaining == 0 %}
+                                            <span class="days-text text-urgent">(Today)</span>
+                                        {% elif task.days_remaining == 1 %}
+                                            <span class="days-text text-warning">(Tomorrow)</span>
+                                        {% else %}
+                                            <span class="days-text text-muted">({{ task.days_remaining }}d left)</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td data-label="Diff / Imp">
+                                <div class="ratings-cell">
+                                    <span title="Difficulty (1-5)" class="rating-item"><small>Diff:</small> <strong>{{ task.Task_Difficulty }}</strong>/5</span>
+                                    <span title="Importance (1-5)" class="rating-item"><small>Imp:</small> <strong>{{ task.Task_Importance }}</strong>/5</span>
+                                </div>
+                            </td>
+                            <td data-label="Est. Hours">
+                                <span class="hours-tag">{{ task.Estimated_Hours }} hrs</span>
+                            </td>
+                            <td data-label="Priority Score">
+                                <span class="priority-pill {{ task.badge_class }}">
+                                    ★ {{ "%.2f"|format(task.Priority_Score) }}
+                                </span>
+                            </td>
+                            <td data-label="Status">
+                                {% if task.Task_Status == 'Completed' %}
+                                    <span class="badge badge-success">✓ Completed</span>
+                                {% else %}
+                                    <span class="badge badge-pending">⏳ Pending</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Actions" class="actions-cell-mobile" style="text-align: right;">
+                                <div class="actions-group">
+                                    {% if task.Task_Status == 'Pending' %}
+                                    <button type="button" class="btn-action btn-pomo" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session for this task">
+                                        ⚡
+                                    </button>
+                                    <form action="{{ url_for('complete_task', task_id=task.Task_ID) }}" method="POST" style="display:inline;" onsubmit="triggerConfetti();">
+                                        <button type="submit" class="btn-action btn-complete" title="Mark as Completed">
+                                            ✓
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <a href="{{ url_for('edit_task', task_id=task.Task_ID) }}" class="btn-action btn-edit" title="Edit Task">
+                                        ✎
+                                    </a>
+                                    <form action="{{ url_for('delete_task', task_id=task.Task_ID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete \'{{ task.Task_Title|replace('\'', '\\\'') }}\'?');">
+                                        <button type="submit" class="btn-action btn-delete" title="Delete Task">
+                                            🗑
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">✨</div>
+                <h3>No study tasks cooking yet!</h3>
+                <p>Your task list is squeaky clean. Add your first assignment to generate a prioritized plan.</p>
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary btn-lg">+ Add Your First Task</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

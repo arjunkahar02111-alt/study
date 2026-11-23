@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Task{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <div class="page-header">
+        <div class="header-intro">
+            <h1 class="page-title">Add Study Task</h1>
+            <p class="page-subtitle">Input your assignment or study task details. The system will automatically compute the priority score.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="form-layout-grid">
+        <!-- Main Form Column -->
+        <div class="card form-card">
+            <div class="card-header">
+                <h2 class="card-title">Task Information</h2>
+                <span class="card-subtitle">All fields are required</span>
+            </div>
+            <div class="card-body">
+                <form id="taskForm" action="{{ url_for('add_task') }}" method="POST" novalidate>
+                    <!-- Task Title -->
+                    <div class="form-group">
+                        <label for="title" class="form-label">
+                            Task Title <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            class="form-control" 
+                            placeholder="e.g. Mathematics Calculus Problem Set"
+                            value="{{ form_data.get('title', '') }}" 
+                            required
+                        >
+                        <small class="form-text">Brief, descriptive title for your study assignment.</small>
+                    </div>
+
+                    <!-- Subject -->
+                    <div class="form-group">
+                        <label for="subject" class="form-label">
+                            Subject / Course <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="subject" 
+                            name="subject" 
+                            class="form-control" 
+                            placeholder="e.g. Mathematics, Physics, Chemistry, English"
+                            value="{{ form_data.get('subject', '') }}" 
+                            required
+                        >
+                        <small class="form-text">Academic subject or topic.</small>
+                    </div>
+
+                    <!-- Deadline -->
+                    <div class="form-group">
+                        <label for="deadline" class="form-label">
+                            Deadline Date <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="deadline" 
+                            name="deadline" 
+                            class="form-control" 
+                            value="{{ form_data.get('deadline', '') }}" 
+                            required
+                        >
+                        <!-- Smart Due Date Quick Chips -->
+                        <div class="smart-date-chips">
+                            <span class="chips-label">⚡ Quick Set:</span>
+                            <button type="button" class="date-chip" onclick="setSmartDate(0);">Today</button>
+                            <button type="button" class="date-chip" onclick="setSmartDate(1);">Tomorrow</button>
+                            <button type="button" class="date-chip" onclick="setSmartDate(3);">In 3 Days</button>
+                            <button type="button" class="date-chip" onclick="setSmartDate(7);">Next Week</button>
+                            <button type="button" class="date-chip" onclick="setSmartDate(14);">In 2 Weeks</button>
+                        </div>
+                        <small class="form-text">The date this task must be completed by (YYYY-MM-DD).</small>
+                    </div>
+
+                    <div class="form-row-2">
+                        <!-- Difficulty Level (1-5) -->
+                        <div class="form-group">
+                            <label for="difficulty" class="form-label">
+                                Difficulty Level (1 to 5) <span class="text-danger">*</span>
+                            </label>
+                            <div class="range-with-display">
+                                <select id="difficulty" name="difficulty" class="form-control" required>
+                                    <option value="" disabled {% if not form_data.get('difficulty') %}selected{% endif %}>Select difficulty...</option>
+                                    <option value="1" {% if form_data.get('difficulty') == '1' %}selected{% endif %}>1 - Very Easy (Review)</option>
+                                    <option value="2" {% if form_data.get('difficulty') == '2' %}selected{% endif %}>2 - Easy (Straightforward)</option>
+                                    <option value="3" {% if form_data.get('difficulty') == '3' or not form_data.get('difficulty') %}selected{% endif %}>3 - Moderate (Standard)</option>
+                                    <option value="4" {% if form_data.get('difficulty') == '4' %}selected{% endif %}>4 - Hard (Challenging)</option>
+                                    <option value="5" {% if form_data.get('difficulty') == '5' %}selected{% endif %}>5 - Very Hard (Complex / Exam)</option>
+                                </select>
+                            </div>
+                            <small class="form-text">Weight: 20% of priority score.</small>
+                        </div>
+
+                        <!-- Importance Level (1-5) -->
+                        <div class="form-group">
+                            <label for="importance" class="form-label">
+                                Importance Level (1 to 5) <span class="text-danger">*</span>
+                            </label>
+                            <div class="range-with-display">
+                                <select id="importance" name="importance" class="form-control" required>
+                                    <option value="" disabled {% if not form_data.get('importance') %}selected{% endif %}>Select importance...</option>
+                                    <option value="1" {% if form_data.get('importance') == '1' %}selected{% endif %}>1 - Low (Optional / Minor)</option>
+                                    <option value="2" {% if form_data.get('importance') == '2' %}selected{% endif %}>2 - Fair (Regular classwork)</option>
+                                    <option value="3" {% if form_data.get('importance') == '3' %}selected{% endif %}>3 - Significant (Graded quiz)</option>
+                                    <option value="4" {% if form_data.get('importance') == '4' %}selected{% endif %}>4 - High (Major assignment)</option>
+                                    <option value="5" {% if form_data.get('importance') == '5' or not form_data.get('importance') %}selected{% endif %}>5 - Critical (Final exam / IA / Capstone)</option>
+                                </select>
+                            </div>
+                            <small class="form-text">Weight: 30% of priority score.</small>
+                        </div>
+                    </div>
+
+                    <!-- Estimated Completion Time -->
+                    <div class="form-group">
+                        <label for="estimated_hours" class="form-label">
+                            Estimated Completion Time (Hours) <span class="text-danger">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="estimated_hours" 
+                            name="estimated_hours" 
+                            class="form-control" 
+                            min="0.25" 
+                            step="0.25" 
+                            placeholder="e.g. 2.5"
+                            value="{{ form_data.get('estimated_hours', '2.0') }}" 
+                            required
+                        >
+                        <small class="form-text">Estimated time needed in hours (> 0). Weight: 10% of priority score.</small>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            Save Task
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Live Dynamic Priority Calculator Preview Card -->
+        <div class="card preview-card">
+            <div class="card-header">
+                <h3 class="card-title">Live Priority Preview</h3>
+                <span class="badge badge-info">Algorithm Preview</span>
+            </div>
+            <div class="card-body">
+                <div class="score-display">
+                    <span class="score-number" id="previewScore">--</span>
+                    <span class="score-max">/ 5.00</span>
+                </div>
+                <div class="score-category" id="previewCategory">Awaiting inputs...</div>
+
+                <hr class="card-divider">
+
+                <div class="algorithm-breakdown">
+                    <h4>Computational Model Breakdown</h4>
+                    <ul class="breakdown-list">
+                        <li>
+                            <span class="breakdown-label">Urgency (40%):</span>
+                            <span class="breakdown-val" id="previewUrgency">--</span>
+                        </li>
+                        <li>
+                            <span class="breakdown-label">Importance (30%):</span>
+                            <span class="breakdown-val" id="previewImportance">--</span>
+                        </li>
+                        <li>
+                            <span class="breakdown-label">Difficulty (20%):</span>
+                            <span class="breakdown-val" id="previewDifficulty">--</span>
+                        </li>
+                        <li>
+                            <span class="breakdown-label">Workload (10%):</span>
+                            <span class="breakdown-val" id="previewWorkload">--</span>
+                        </li>
+                    </ul>
+                    <div class="formula-box">
+                        <code>Score = (0.4×U) + (0.3×I) + (0.2×D) + (0.1×W)</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

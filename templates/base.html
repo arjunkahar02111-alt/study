@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SYNTRIQ{% endblock %} - Smart Study Planner</title>
+    <!-- Favicon & App Icons from Brand Identity -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts for Cooking App-style modern aesthetic: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="container nav-container">
+            <a href="{{ url_for('dashboard') }}" class="brand-logo" title="SYNTRIQ - Think Smarter. Study Better.">
+                <img src="{{ url_for('static', filename='images/syntriq-icon.png') }}" alt="SYNTRIQ Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">SYNTRIQ</span>
+                    <span class="brand-subtitle">Think Smarter &bull; Study Better</span>
+                </div>
+            </a>
+            <!-- Desktop Navigation Links -->
+            <nav class="nav-links desktop-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('study_plan') }}" class="nav-item {% if request.endpoint == 'study_plan' %}active{% endif %}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Study Plan
+                </a>
+                <button type="button" class="nav-item nav-btn-focus" onclick="openPomodoroModal();">
+                    <span class="focus-fire-icon">⚡</span> Focus Timer
+                </button>
+                <button id="soundToggleBtn" type="button" class="nav-item sound-toggle-btn" onclick="toggleSoundMute();" title="Sound Effects: ON (Click to Mute)">
+                    🔊
+                </button>
+                <a href="{{ url_for('add_task') }}" class="nav-item nav-btn-primary {% if request.endpoint == 'add_task' %}active{% endif %}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    + Add Task
+                </a>
+            </nav>
+            <!-- Mobile Menu Toggle Button -->
+            <button type="button" class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle navigation menu" onclick="toggleMobileNav();">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Drawer Overlay & Slide Drawer -->
+    <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" onclick="closeMobileNav();"></div>
+    <aside id="mobileNavDrawer" class="mobile-nav-drawer" aria-label="Mobile Navigation Drawer">
+        <div class="drawer-header">
+            <div class="brand-logo">
+                <img src="{{ url_for('static', filename='images/syntriq-icon.png') }}" alt="SYNTRIQ" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">SYNTRIQ</span>
+                    <span class="brand-subtitle">Think Smarter &bull; Study Better</span>
+                </div>
+            </div>
+            <button type="button" class="drawer-close-btn" onclick="closeMobileNav();" aria-label="Close navigation">&times;</button>
+        </div>
+        <div class="drawer-body">
+            <nav class="drawer-links">
+                <a href="{{ url_for('dashboard') }}" class="drawer-item {% if request.endpoint == 'dashboard' %}active{% endif %}" onclick="closeMobileNav();">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('study_plan') }}" class="drawer-item {% if request.endpoint == 'study_plan' %}active{% endif %}" onclick="closeMobileNav();">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Study Plan
+                </a>
+                <button type="button" class="drawer-item drawer-btn-focus" onclick="closeMobileNav(); openPomodoroModal();">
+                    <span class="focus-fire-icon">⚡</span> Focus Timer
+                </button>
+                <div class="drawer-sound-row">
+                    <span>Acoustic Sounds</span>
+                    <button id="mobileSoundToggleBtn" type="button" class="sound-toggle-btn" onclick="toggleSoundMute();" title="Sound Effects">
+                        🔊
+                    </button>
+                </div>
+            </nav>
+            <div class="drawer-footer">
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary btn-block drawer-add-btn" onclick="closeMobileNav();">
+                    + Add New Task
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Flash Messages -->
+    <div class="container flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span class="alert-icon">
+                            {% if category == 'success' %}✓
+                            {% elif category == 'danger' %}⚠
+                            {% else %}ℹ{% endif %}
+                        </span>
+                        <span class="alert-message">{{ message }}</span>
+                        <button type="button" class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="container main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="container footer-container">
+            <div class="footer-left">
+                <strong>Smart Study Planner</strong> &bull; Computer Science Coursework Solution
+                <span class="footer-date">Current Date: <code>{{ current_date.strftime('%Y-%m-%d') }}</code></span>
+            </div>
+            <div class="footer-right">
+                <form action="{{ url_for('clear_all_tasks') }}" method="POST" onsubmit="return confirm('Delete all tasks and start fresh?');" style="display:inline;">
+                    <button type="submit" class="btn-text-link text-danger">🗑 Clear All Tasks</button>
+                </form>
+                &bull;
+                <form action="{{ url_for('seed_sample_tasks') }}" method="POST" onsubmit="return confirm('Load demo sample tasks?');" style="display:inline;">
+                    <button type="submit" class="btn-text-link">↻ Load Sample Tasks</button>
+                </form>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Confetti Canvas for Celebratory Completions -->
+    <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+    <!-- Focus Pomodoro Kitchen Modal -->
+    <div id="pomodoroModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closePomodoroModal();">
+        <div class="modal-card pomodoro-card">
+            <button type="button" class="modal-close-btn" onclick="closePomodoroModal();">&times;</button>
+            <div class="pomodoro-header">
+                <span class="pomodoro-badge">⚡ FOCUS KITCHEN</span>
+                <h2 id="pomoTaskTitle" class="pomodoro-title">Deep Work Session</h2>
+                <p id="pomoTaskSubject" class="pomodoro-subtitle">Stay focused on your highest priority study task</p>
+            </div>
+
+            <!-- Interval Selector -->
+            <div class="pomo-modes">
+                <button type="button" class="pomo-mode-btn active" data-time="25" onclick="setPomoDuration(25, this)">25m Study</button>
+                <button type="button" class="pomo-mode-btn" data-time="50" onclick="setPomoDuration(50, this)">50m Deep</button>
+                <button type="button" class="pomo-mode-btn" data-time="5" onclick="setPomoDuration(5, this)">5m Break</button>
+            </div>
+
+            <!-- Circular Progress Ring Timer -->
+            <div class="timer-container">
+                <svg class="timer-svg" viewBox="0 0 240 240">
+                    <circle class="timer-track" cx="120" cy="120" r="100" />
+                    <circle id="timerProgress" class="timer-bar" cx="120" cy="120" r="100" />
+                </svg>
+                <div class="timer-display">
+                    <span id="pomoTimerText" class="timer-digits">25:00</span>
+                    <span id="pomoStatusText" class="timer-status">Ready to Start</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="pomo-controls">
+                <button type="button" id="pomoStartBtn" class="btn btn-primary btn-lg pomo-main-btn" onclick="togglePomodoro();">
+                    ▶ Start Session
+                </button>
+                <button type="button" class="btn btn-outline pomo-reset-btn" onclick="resetPomodoro();" title="Reset Timer">
+                    ↺ Reset
+                </button>
+            </div>
+
+            <!-- Ambient Soundscapes & Ticking Generator -->
+            <div class="ambient-sound-row">
+                <span class="ambient-label">🎧 Focus Audio:</span>
+                <div class="ambient-chips">
+                    <button type="button" class="ambient-chip active" data-sound="none" onclick="setAmbientSound('none', this)">None</button>
+                    <button type="button" class="ambient-chip" data-sound="rain" onclick="setAmbientSound('rain', this)">🌧️ Rain</button>
+                    <button type="button" class="ambient-chip" data-sound="whitenoise" onclick="setAmbientSound('whitenoise', this)">📻 White Noise</button>
+                    <button type="button" class="ambient-chip" data-sound="cafe" onclick="setAmbientSound('cafe', this)">☕ Café Waves</button>
+                    <button type="button" id="tickSoundChip" class="ambient-chip" onclick="toggleClockTick(this)">⏰ Ticking: OFF</button>
+                </div>
+            </div>
+
+            <div class="pomo-footer-info">
+                <span>Keyboard Shortcuts: <kbd>Space</kbd> Play/Pause &bull; <kbd>Esc</kbd> Close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcut Help Indicator -->
+    <div class="keyboard-helper-btn" onclick="toggleKeyboardModal();" title="Keyboard Shortcuts">
+        ⌨️ Shortcuts
+    </div>
+
+    <div id="keyboardModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) toggleKeyboardModal();">
+        <div class="modal-card small-modal">
+            <button type="button" class="modal-close-btn" onclick="toggleKeyboardModal();">&times;</button>
+            <h3 style="margin-bottom: 14px;">⚡ Quick Shortcuts</h3>
+            <ul class="shortcuts-list">
+                <li><span>Add New Task</span> <kbd>N</kbd></li>
+                <li><span>Go to Dashboard</span> <kbd>D</kbd></li>
+                <li><span>Open Study Plan</span> <kbd>S</kbd></li>
+                <li><span>Open Focus Timer</span> <kbd>P</kbd></li>
+                <li><span>Close Modals</span> <kbd>Esc</kbd></li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

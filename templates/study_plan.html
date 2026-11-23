@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Organized Study Plan{% endblock %}
+
+{% block content %}
+<div class="study-plan-page">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="header-intro">
+            <h1 class="page-title">Algorithmic Study Plan</h1>
+            <p class="page-subtitle">Tasks ordered in descending sequence of computed Priority Score. Work through these sequentially for optimal time management.</p>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn btn-secondary" onclick="openSimulatorModal();">
+                🎛️ What-If Simulator
+            </button>
+            <button type="button" class="btn btn-outline" onclick="openPomodoroModal();">
+                ⚡ Focus Timer
+            </button>
+            <a href="{{ url_for('add_task') }}" class="btn btn-primary">
+                + Add Another Task
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline">
+                ← Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Explanatory Algorithm Banner -->
+    <div class="card algorithm-card">
+        <div class="algorithm-header">
+            <div class="algo-title-group">
+                <span class="algo-icon">⚙️</span>
+                <div>
+                    <h3 class="algo-heading">Dynamic Priority Algorithm Formula</h3>
+                    <p class="algo-desc">Priority is automatically recalculated using 4 weighted components: Urgency (40%), Importance (30%), Difficulty (20%), and Workload (10%).</p>
+                </div>
+            </div>
+            <div class="formula-badge">
+                <code>Priority = (0.4 × Urgency) + (0.3 × Importance) + (0.2 × Difficulty) + (0.1 × Workload)</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prioritized Task List Section -->
+    <div class="prioritized-section">
+        <div class="section-title-bar">
+            <h2>Pending Tasks in Priority Order ({{ tasks|length }})</h2>
+            <span class="text-muted">High Priority (★ 4.0 - 5.0) &bull; Moderate (★ 3.0 - 3.9) &bull; Low (★ 1.0 - 2.9)</span>
+        </div>
+
+        {% if tasks %}
+        <div class="priority-list">
+            {% for task in tasks %}
+            <div class="priority-card {% if task.is_overdue %}card-overdue{% elif loop.index == 1 %}card-top-priority{% endif %}" style="--stagger: {{ loop.index0 }};">
+                <!-- Rank ribbon -->
+                <div class="rank-col">
+                    <span class="rank-number">#{{ loop.index }}</span>
+                    <span class="rank-label">Rank</span>
+                </div>
+
+                <!-- Main Task Information -->
+                <div class="task-details-col">
+                    <div class="task-header-line">
+                        <span class="subject-badge">{{ task.Task_Subject }}</span>
+                        {% if task.is_overdue %}
+                            <span class="badge badge-overdue">⚠️ OVERDUE ({{ task.days_remaining|abs }}d late)</span>
+                        {% elif task.days_remaining == 0 %}
+                            <span class="badge badge-urgent">🔥 DUE TODAY</span>
+                        {% elif task.days_remaining == 1 %}
+                            <span class="badge badge-warning">⚡ DUE TOMORROW</span>
+                        {% elif task.days_remaining <= 3 %}
+                            <span class="badge badge-info">📅 In {{ task.days_remaining }} days</span>
+                        {% else %}
+                            <span class="badge badge-neutral">📅 Due {{ task.Task_Deadline }} ({{ task.days_remaining }}d left)</span>
+                        {% endif %}
+                    </div>
+
+                    <h3 class="task-heading">{{ task.Task_Title }}</h3>
+
+                    <!-- Score Breakdown Tags -->
+                    <div class="factors-row">
+                        <span class="factor-tag" title="Urgency based on days remaining">
+                            <strong>Urgency:</strong> {{ task.urgency }}/5
+                        </span>
+                        <span class="factor-tag" title="Importance assigned by student">
+                            <strong>Importance:</strong> {{ task.Task_Importance }}/5
+                        </span>
+                        <span class="factor-tag" title="Difficulty level">
+                            <strong>Difficulty:</strong> {{ task.Task_Difficulty }}/5
+                        </span>
+                        <span class="factor-tag" title="Workload derived from estimated hours">
+                            <strong>Workload:</strong> {{ task.workload }}/5 ({{ task.Estimated_Hours }}h)
+                        </span>
+                    </div>
+
+                    <!-- Subtask Checklist Decomposer -->
+                    <div class="subtasks-container">
+                        <div class="subtasks-header" onclick="toggleSubtasksView({{ task.Task_ID }});">
+                            <span class="subtasks-title">
+                                📋 Sub-Milestones 
+                                <span class="subtask-counter" id="subtaskCounter-{{ task.Task_ID }}">
+                                    ({{ task.subtasks|selectattr('Is_Completed')|list|length }}/{{ task.subtasks|length }})
+                                </span>
+                            </span>
+                            <span class="subtasks-toggle-arrow" id="subtaskArrow-{{ task.Task_ID }}">▼</span>
+                        </div>
+                        <div class="subtasks-body" id="subtasksBody-{{ task.Task_ID }}" style="display:none;">
+                            <ul class="subtasks-list" id="subtasksList-{{ task.Task_ID }}">
+                                {% for sub in task.subtasks %}
+                                <li class="subtask-item {% if sub.Is_Completed %}subtask-done{% endif %}" id="subtaskItem-{{ sub.Subtask_ID }}">
+                                    <label class="subtask-checkbox-label">
+                                        <input type="checkbox" {% if sub.Is_Completed %}checked{% endif %} onchange="toggleSubtaskStatus({{ sub.Subtask_ID }}, {{ task.Task_ID }});">
+                                        <span class="subtask-text">{{ sub.Subtask_Title }}</span>
+                                    </label>
+                                    <button type="button" class="subtask-del-btn" onclick="deleteSubtaskItem({{ sub.Subtask_ID }}, {{ task.Task_ID }});">&times;</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            <div class="subtask-add-bar">
+                                <input type="text" id="newSubtaskInput-{{ task.Task_ID }}" class="subtask-input" placeholder="Add study milestone..." onkeydown="if(event.key==='Enter') createSubtask({{ task.Task_ID }});">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="createSubtask({{ task.Task_ID }});">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority Score Column -->
+                <div class="score-col">
+                    <span class="score-badge {{ task.badge_class }}">
+                        ★ {{ "%.2f"|format(task.Priority_Score) }}
+                    </span>
+                    <span class="score-label">{{ task.priority_category }}</span>
+                    <small class="score-math text-muted">
+                        {{ "%.1f"|format(0.4 * task.urgency) }} + {{ "%.1f"|format(0.3 * task.Task_Importance) }} + {{ "%.1f"|format(0.2 * task.Task_Difficulty) }} + {{ "%.1f"|format(0.1 * task.workload) }}
+                    </small>
+                </div>
+
+                <!-- Actions Column -->
+                <div class="actions-col">
+                    <button type="button" class="btn btn-primary btn-block pomo-task-btn" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session">
+                        ⚡ Cook Task
+                    </button>
+                    <form action="{{ url_for('complete_task', task_id=task.Task_ID) }}" method="POST" onsubmit="triggerConfetti();">
+                        <button type="submit" class="btn btn-success btn-block" title="Mark as Completed">
+                            ✓ Complete
+                        </button>
+                    </form>
+                    <div class="secondary-actions">
+                        <a href="{{ url_for('edit_task', task_id=task.Task_ID) }}" class="btn btn-sm btn-outline" title="Edit Task Details">
+                            ✎ Edit
+                        </a>
+                        <form action="{{ url_for('delete_task', task_id=task.Task_ID) }}" method="POST" onsubmit="return confirm('Delete \'{{ task.Task_Title|replace('\'', '\\\'') }}\'?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Task">
+                                🗑 Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card empty-card">
+            <div class="empty-state">
+                <div class="empty-icon">🍳</div>
+                <h3>All Caught Up! No Pending Tasks</h3>
+                <p>Nothing on your study stove right now. Add your upcoming assignments to generate an organized priority recipe.</p>
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary btn-lg">+ Add New Study Task</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Completed Tasks Section -->
+    {% if completed_tasks %}
+    <div class="card completed-section mt-4">
+        <div class="card-header">
+            <h3 class="card-title">Completed Tasks History ({{ completed_tasks|length }})</h3>
+            <span class="card-subtitle">Achieved study milestones</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Task Title</th>
+                            <th>Subject</th>
+                            <th>Original Deadline</th>
+                            <th>Est. Hours</th>
+                            <th>Final Priority Score</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in completed_tasks %}
+                        <tr style="--stagger: {{ loop.index0 }};">
+                            <td data-label="Task Title"><span class="task-completed-strikethrough">{{ task.Task_Title }}</span></td>
+                            <td data-label="Subject"><span class="subject-tag">{{ task.Task_Subject }}</span></td>
+                            <td data-label="Original Deadline">{{ task.Task_Deadline }}</td>
+                            <td data-label="Est. Hours">{{ task.Estimated_Hours }} hrs</td>
+                            <td data-label="Final Priority Score">★ {{ "%.2f"|format(task.Priority_Score) }}</td>
+                            <td data-label="Status"><span class="badge badge-success">✓ Completed</span></td>
+                            <td data-label="Actions" style="text-align: right;">
+                                <form action="{{ url_for('delete_task', task_id=task.Task_ID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete this completed record?');">
+                                    <button type="submit" class="btn-action btn-delete" title="Delete">🗑</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav-bar mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            ← Return to Dashboard
+        </a>
+    </div>
+    <!-- What-If Priority Simulator Modal -->
+    <div id="simulatorModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeSimulatorModal();">
+        <div class="modal-card simulator-card">
+            <button type="button" class="modal-close-btn" onclick="closeSimulatorModal();">&times;</button>
+            <div class="modal-header-block">
+                <span class="badge badge-urgent">🎛️ WHAT-IF SIMULATOR</span>
+                <h2 class="modal-title">Algorithmic Ripple Simulator</h2>
+                <p class="modal-desc">Test hypothetical adjustments to deadlines and hours to see how the algorithm alters task priority.</p>
+            </div>
+
+            {% if tasks %}
+            <div class="simulator-body">
+                <div class="form-group">
+                    <label class="form-label">Select Task to Simulate</label>
+                    <select id="simTaskSelect" class="form-control" onchange="loadSimTaskDetails();">
+                        {% for t in tasks %}
+                        <option value="{{ t.Task_ID }}" 
+                                data-deadline="{{ t.Task_Deadline }}" 
+                                data-difficulty="{{ t.Task_Difficulty }}" 
+                                data-importance="{{ t.Task_Importance }}" 
+                                data-hours="{{ t.Estimated_Hours }}"
+                                data-score="{{ t.Priority_Score }}">
+                            #{{ loop.index }} {{ t.Task_Title }} (★ {{ "%.2f"|format(t.Priority_Score) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sliders for What-If variables -->
+                <div class="sim-slider-group">
+                    <div class="slider-row">
+                        <label class="form-label">
+                            Deadline Shift: <span id="simDaysShiftLabel" class="slider-val text-primary">0 days</span>
+                        </label>
+                        <input type="range" id="simDaysShift" min="-3" max="14" value="0" step="1" class="slider-range" oninput="runPrioritySimulation();">
+                        <div class="slider-scale">
+                            <span>-3d (Closer)</span>
+                            <span>Today</span>
+                            <span>+7d</span>
+                            <span>+14d (Postpone)</span>
+                        </div>
+                    </div>
+
+                    <div class="slider-row mt-3">
+                        <label class="form-label">
+                            Hours Adjustment: <span id="simHoursShiftLabel" class="slider-val text-primary">+0.0 hrs</span>
+                        </label>
+                        <input type="range" id="simHoursShift" min="-4" max="6" value="0" step="0.5" class="slider-range" oninput="runPrioritySimulation();">
+                        <div class="slider-scale">
+                            <span>-4.0h</span>
+                            <span>Original</span>
+                            <span>+3.0h</span>
+                            <span>+6.0h</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Output Comparison Card -->
+                <div class="sim-comparison-grid">
+                    <div class="sim-col sim-before">
+                        <span class="sim-tag">Current Score</span>
+                        <span class="sim-score-val" id="simCurrentScore">--</span>
+                    </div>
+                    <div class="sim-arrow">➔</div>
+                    <div class="sim-col sim-after">
+                        <span class="sim-tag">Simulated Score</span>
+                        <span class="sim-score-val" id="simProjectedScore">--</span>
+                        <span class="sim-diff-pill" id="simDiffPill">+0.00</span>
+                    </div>
+                </div>
+
+                <div class="sim-details-box" id="simDetailsText">
+                    Adjust the sliders above to see how changing deadlines or hours reshuffles your study priorities.
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No pending tasks available to simulate. Add a task first!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
