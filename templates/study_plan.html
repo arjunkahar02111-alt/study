@@ -30,10 +30,12 @@
     <div class="card algorithm-card">
         <div class="algorithm-header">
             <div class="algo-title-group">
-                <span class="algo-icon">⚙️</span>
+                <span class="algo-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </span>
                 <div>
                     <h3 class="algo-heading">Dynamic Priority Algorithm Formula</h3>
-                    <p class="algo-desc">Priority is automatically recalculated using 4 weighted components: Urgency (40%), Importance (30%), Difficulty (20%), and Workload (10%).</p>
+                    <p class="algo-desc">Priority is automatically calculated using 4 weighted components: Urgency (40%), Importance (30%), Difficulty (20%), and Workload (10%).</p>
                 </div>
             </div>
             <div class="formula-badge">
@@ -46,7 +48,17 @@
     <div class="prioritized-section">
         <div class="section-title-bar">
             <h2>Pending Tasks in Priority Order ({{ tasks|length }})</h2>
-            <span class="text-muted">High Priority (★ 4.0 - 5.0) &bull; Moderate (★ 3.0 - 3.9) &bull; Low (★ 1.0 - 2.9)</span>
+            <div class="priority-legend">
+                <span class="legend-chip legend-high" title="Priority score 4.0 to 5.0">
+                    <span class="legend-dot dot-high"></span> High (★ 4.0 – 5.0)
+                </span>
+                <span class="legend-chip legend-mod" title="Priority score 3.0 to 3.9">
+                    <span class="legend-dot dot-mod"></span> Moderate (★ 3.0 – 3.9)
+                </span>
+                <span class="legend-chip legend-low" title="Priority score 1.0 to 2.9">
+                    <span class="legend-dot dot-low"></span> Low (★ 1.0 – 2.9)
+                </span>
+            </div>
         </div>
 
         {% if tasks %}
@@ -98,7 +110,8 @@
                     <div class="subtasks-container">
                         <div class="subtasks-header" onclick="toggleSubtasksView({{ task.Task_ID }});">
                             <span class="subtasks-title">
-                                📋 Sub-Milestones 
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                                Sub-Milestones 
                                 <span class="subtask-counter" id="subtaskCounter-{{ task.Task_ID }}">
                                     ({{ task.subtasks|selectattr('Is_Completed')|list|length }}/{{ task.subtasks|length }})
                                 </span>
@@ -139,7 +152,8 @@
                 <!-- Actions Column -->
                 <div class="actions-col">
                     <button type="button" class="btn btn-primary btn-block pomo-task-btn" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session">
-                        ⚡ Cook Task
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -2px; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Focus Session
                     </button>
                     <form action="{{ url_for('complete_task', task_id=task.Task_ID) }}" method="POST" onsubmit="triggerConfetti();">
                         <button type="submit" class="btn btn-success btn-block" title="Mark as Completed">
@@ -162,11 +176,16 @@
         </div>
         {% else %}
         <div class="card empty-card">
-            <div class="empty-state">
-                <div class="empty-icon">🍳</div>
-                <h3>All Caught Up! No Pending Tasks</h3>
-                <p>Nothing on your study stove right now. Add your upcoming assignments to generate an organized priority recipe.</p>
-                <a href="{{ url_for('add_task') }}" class="btn btn-primary btn-lg">+ Add New Study Task</a>
+            <div class="empty-state empty-state-compact">
+                <div class="empty-state-icon-wrap">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                </div>
+                <h3>Your study plan is clear</h3>
+                <p>You're all caught up. When you add assignments, SYNTRIQ will automatically calculate their priority scores and organize your schedule.</p>
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary">Add Study Task</a>
             </div>
         </div>
         {% endif %}
@@ -227,7 +246,7 @@
         <div class="modal-card simulator-card">
             <button type="button" class="modal-close-btn" onclick="closeSimulatorModal();">&times;</button>
             <div class="modal-header-block">
-                <span class="badge badge-urgent">🎛️ WHAT-IF SIMULATOR</span>
+                <span class="badge badge-urgent">WHAT-IF SIMULATOR</span>
                 <h2 class="modal-title">Algorithmic Ripple Simulator</h2>
                 <p class="modal-desc">Test hypothetical adjustments to deadlines and hours to see how the algorithm alters task priority.</p>
             </div>

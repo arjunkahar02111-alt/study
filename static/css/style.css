@@ -500,14 +500,25 @@ code {
 
 .stat-icon {
     font-size: 1.8rem;
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--primary-light);
     border-radius: var(--radius-btn);
+    flex-shrink: 0;
 }
+
+.stat-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.stat-total { color: var(--text-primary); background: #F0EEE9; }
+.stat-pending { color: #B45309; background: #FEF3C7; }
+.stat-overdue { color: #B91C1C; background: #FEE2E2; }
+.stat-upcoming { color: var(--primary); background: var(--primary-light); }
+.stat-completed { color: #047857; background: #D1FAE5; }
 
 .stat-info {
     display: flex;
@@ -855,25 +866,90 @@ code {
 
 /* Empty State */
 .empty-state {
-    padding: 56px 24px;
+    padding: 48px 24px;
     text-align: center;
 }
 
-.empty-icon {
-    font-size: 3.5rem;
+.empty-state-compact {
+    padding: 32px 20px;
+}
+
+.empty-state-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-full);
+    background: var(--primary-light);
+    border: 1.5px solid #FFD4B8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(255, 107, 0, 0.12);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 14px;
 }
 
 .empty-state h3 {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 8px;
 }
 
 .empty-state p {
     color: var(--text-secondary);
-    font-size: 1rem;
-    margin-bottom: 24px;
+    font-size: 0.95rem;
+    max-width: 480px;
+    margin: 0 auto 24px;
+    line-height: 1.55;
+}
+
+/* Priority Legend */
+.priority-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.legend-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    border: 1px solid var(--border-color);
+    background: #FFFFFF;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dot-high { background: var(--danger); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+.legend-high { color: var(--danger); border-color: #FECACA; background: #FEF2F2; }
+
+.dot-mod { background: var(--warning); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+.legend-mod { color: #B45309; border-color: #FDE68A; background: #FFFBEB; }
+
+.dot-low { background: var(--info); box-shadow: 0 0 6px rgba(59, 130, 246, 0.4); }
+.legend-low { color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF; }
+
+/* Streak Icon in Motivation Bar */
+.streak-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    margin-right: 4px;
 }
 
 /* ==========================================================================
