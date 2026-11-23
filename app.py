@@ -27,7 +27,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "smart-study-planner-secret-key-20
 # Database path
 if os.environ.get("VERCEL"):
     import shutil
-    DB_FILE = "/tmp/study_planner.db"
+    import tempfile
+    DB_FILE = os.path.join(tempfile.gettempdir(), "study_planner.db")
     orig_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
     if not os.path.exists(DB_FILE) and os.path.exists(orig_db):
         try:

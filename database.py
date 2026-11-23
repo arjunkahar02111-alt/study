@@ -19,7 +19,8 @@ from priority_calculator import (
 )
 
 if os.environ.get("VERCEL"):
-    DEFAULT_DB_PATH = "/tmp/study_planner.db"
+    import tempfile
+    DEFAULT_DB_PATH = os.path.join(tempfile.gettempdir(), "study_planner.db")
     orig_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
     if not os.path.exists(DEFAULT_DB_PATH) and os.path.exists(orig_db):
         try:
