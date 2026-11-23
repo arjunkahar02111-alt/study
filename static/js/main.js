@@ -402,7 +402,14 @@ function onPomodoroFinished() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task_id: pomoCurrentTaskId, minutes: minutesSpent })
-    }).catch(err => console.warn("Session logging note:", err));
+    })
+    .then(() => {
+        fetchActiveSession();
+        if (typeof fetchTimeIntelData === "function") {
+            fetchTimeIntelData();
+        }
+    })
+    .catch(err => console.warn("Session logging note:", err));
 }
 
 /* ==========================================================================
@@ -1019,13 +1026,23 @@ let activeSessionInterval = null;
 let activeSessionClientSyncTime = 0;
 let pendingSwitchTaskId = null;
 
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function initTimeTracking() {
     fetchActiveSession();
-    setInterval(fetchActiveSession, 20000);
+    setInterval(fetchActiveSession, 6000);
 
-    // If on Time Intelligence page, periodically sync dashboard data
+    // If on Time Intelligence page, periodically sync real-time dashboard data
     if (document.getElementById("intelTodayValue")) {
-        setInterval(fetchTimeIntelData, 15000);
+        setInterval(fetchTimeIntelData, 4000);
     }
 
     // Sync immediately when browser tab regains visibility (prevents background throttle drift)
@@ -1047,10 +1064,135 @@ function fetchTimeIntelData() {
             const weekEl = document.getElementById("intelWeekValue");
             const monthEl = document.getElementById("intelMonthValue");
             const totalEl = document.getElementById("intelTotalValue");
+            const streakEl = document.getElementById("intelStreakValue");
+
             if (todayEl) todayEl.dataset.baseSeconds = data.today_completed_seconds || 0;
             if (weekEl) weekEl.dataset.baseSeconds = data.week_completed_seconds || 0;
             if (monthEl) monthEl.dataset.baseSeconds = data.month_completed_seconds || 0;
             if (totalEl) totalEl.dataset.baseSeconds = data.total_completed_seconds || 0;
+            if (streakEl) streakEl.textContent = `${data.streak_days} Day${data.streak_days !== 1 ? 's' : ''}`;
+
+            // Update Insights list dynamically in real-time
+            const insightsEl = document.getElementById("intelInsightsList");
+            if (insightsEl && Array.isArray(data.insights)) {
+                insightsEl.innerHTML = data.insights.map(item => `
+                    <li class="insight-item">
+                        <span class="insight-bullet">▸</span>
+                        <span class="insight-text">${escapeHtml(item)}</span>
+                    </li>
+                `).join("");
+            }
+
+            // Update Subject breakdown dynamically in real-time
+            const subjectBody = document.getElementById("intelSubjectBody");
+            if (subjectBody && Array.isArray(data.subject_breakdown)) {
+                if (data.subject_breakdown.length > 0) {
+                    subjectBody.innerHTML = `
+                        <div class="subject-bars-list">
+                            ${data.subject_breakdown.map(sub => `
+                                <div class="subject-bar-item">
+                                    <div class="subject-bar-header">
+                                        <span class="subject-bar-name">${escapeHtml(sub.subject)}</span>
+                                        <span class="subject-bar-duration">${sub.formatted} <small class="text-muted">(${sub.percent}%)</small></span>
+                                    </div>
+                                    <div class="subject-track">
+                                        <div class="subject-fill" style="width: ${sub.percent}%;"></div>
+                                    </div>
+                                </div>
+                            `).join("")}
+                        </div>
+                    `;
+                } else {
+                    subjectBody.innerHTML = `
+                        <div class="empty-state empty-state-compact">
+                            <p class="text-muted">No focus sessions recorded yet. Start tracking time on a task to view subject analytics.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Update Completed Tasks Analytics dynamically in real-time
+            const completedBody = document.getElementById("intelCompletedBody");
+            if (completedBody && Array.isArray(data.completed_analytics)) {
+                if (data.completed_analytics.length > 0) {
+                    completedBody.innerHTML = `
+                        <div class="completed-analytics-list">
+                            ${data.completed_analytics.map(item => `
+                                <div class="completed-analytic-item">
+                                    <div class="analytic-header">
+                                        <span class="subject-tag">${escapeHtml(item.task_subject)}</span>
+                                        <span class="analytic-title">${escapeHtml(item.task_title)}</span>
+                                    </div>
+                                    <div class="analytic-metrics">
+                                        <span class="analytic-badge badge-focus">
+                                            <strong>Focus Time:</strong> ${item.focus_formatted}
+                                        </span>
+                                        <span class="analytic-badge badge-calendar">
+                                            <strong>Calendar Span:</strong> ${item.calendar_span}
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join("")}
+                        </div>
+                    `;
+                } else {
+                    completedBody.innerHTML = `
+                        <div class="empty-state empty-state-compact">
+                            <p class="text-muted">Completed tasks with tracked sessions will appear here with focus vs calendar span analytics.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Update Session count badge & Session History table dynamically in real-time
+            const sessionsBadge = document.getElementById("intelSessionsBadge");
+            if (sessionsBadge) {
+                const count = data.total_sessions_count || 0;
+                sessionsBadge.textContent = `${count} Session${count !== 1 ? 's' : ''} Logged`;
+            }
+
+            const sessionsBody = document.getElementById("intelSessionsBody");
+            if (sessionsBody && Array.isArray(data.recent_sessions)) {
+                if (data.recent_sessions.length > 0) {
+                    sessionsBody.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time Window</th>
+                                        <th>Subject</th>
+                                        <th>Task Assignment</th>
+                                        <th>Tracked Duration</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.recent_sessions.map(sess => `
+                                        <tr>
+                                            <td data-label="Date"><code>${sess.date}</code></td>
+                                            <td data-label="Time Window">${escapeHtml(sess.time_range)}</td>
+                                            <td data-label="Subject"><span class="subject-tag">${escapeHtml(sess.task_subject)}</span></td>
+                                            <td data-label="Task Assignment"><strong>${escapeHtml(sess.task_title)}</strong></td>
+                                            <td data-label="Tracked Duration"><span class="priority-pill badge-warning">⏱ ${sess.duration_formatted}</span></td>
+                                            <td data-label="Status"><span class="badge badge-success">${sess.status}</span></td>
+                                        </tr>
+                                    `).join("")}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    sessionsBody.innerHTML = `
+                        <div class="empty-state" style="padding: 40px 20px;">
+                            <h3>No sessions recorded yet</h3>
+                            <p>When you start a study session or track work on an assignment, every focus session is recorded here with second-level precision.</p>
+                            <a href="/study-plan" class="btn btn-primary">Go to Study Plan</a>
+                        </div>
+                    `;
+                }
+            }
+
             const currentElapsed = activeSessionState ? (activeSessionState.elapsed_seconds || 0) : 0;
             updateTimeIntelDashboard(currentElapsed);
         })
@@ -1069,10 +1211,9 @@ function fetchActiveSession() {
 function syncActiveSessionUI(data) {
     activeSessionState = data;
     const widget = document.getElementById("activeSessionWidget");
-    if (!widget) return;
 
     if (!data || !data.has_active) {
-        widget.style.display = "none";
+        if (widget) widget.style.display = "none";
         if (activeSessionInterval) {
             clearInterval(activeSessionInterval);
             activeSessionInterval = null;
@@ -1088,7 +1229,7 @@ function syncActiveSessionUI(data) {
     }
 
     // Active session present! Show floating widget
-    widget.style.display = "flex";
+    if (widget) widget.style.display = "flex";
 
     const titleEl = document.getElementById("activeWidgetTitle");
     const subjectEl = document.getElementById("activeWidgetSubject");
@@ -1182,20 +1323,24 @@ function updateTimeIntelDashboard(activeElapsed) {
     if (banner) {
         if (hasActive) {
             banner.classList.remove("d-none");
+            banner.style.display = "flex";
             if (bannerClock) bannerClock.textContent = `⏱ ${formatDuration(elapsed)}`;
             if (bannerTitle) bannerTitle.textContent = activeSessionState.task_title || "Study Session";
             if (bannerSubject) bannerSubject.textContent = activeSessionState.task_subject || "General";
             if (bannerPauseBtn) bannerPauseBtn.textContent = isPaused ? "▶ Resume" : "⏸ Pause";
         } else {
             banner.classList.add("d-none");
+            banner.style.display = "none";
         }
     }
 
     if (liveIndicator) {
         if (hasActive) {
             liveIndicator.classList.remove("d-none");
+            liveIndicator.style.display = "inline-flex";
         } else {
             liveIndicator.classList.add("d-none");
+            liveIndicator.style.display = "none";
         }
     }
 

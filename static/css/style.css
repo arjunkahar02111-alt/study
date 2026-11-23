@@ -369,6 +369,10 @@ code {
     margin-top: var(--spacing-md);
 }
 
+.d-none {
+    display: none !important;
+}
+
 .alert {
     display: flex;
     align-items: center;

@@ -25,7 +25,7 @@
     </div>
 
     <!-- Active Real-Time Focus Session Banner -->
-    <div id="intelActiveBanner" class="alert alert-info active-session-banner {% if not intel.has_active_session %}d-none{% endif %}" style="margin-bottom: 20px;">
+    <div id="intelActiveBanner" class="alert alert-info active-session-banner {% if not intel.has_active_session %}d-none{% endif %}" style="margin-bottom: 20px; {% if not intel.has_active_session %}display: none;{% endif %}">
         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span class="live-dot-pulse"></span>
@@ -48,7 +48,7 @@
             <div class="stat-info">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
                     <span class="stat-label">Today's Focus</span>
-                    <span id="intelLiveIndicator" class="live-tag {% if not intel.has_active_session %}d-none{% endif %}">
+                    <span id="intelLiveIndicator" class="live-tag {% if not intel.has_active_session %}d-none{% endif %}" style="{% if not intel.has_active_session %}display: none;{% endif %}">
                         <span class="live-dot-pulse"></span> LIVE
                     </span>
                 </div>
@@ -103,7 +103,7 @@
             <span class="compact-hint">Generated dynamically from genuine focus records</span>
         </div>
         <div class="insights-body">
-            <ul class="insights-list">
+            <ul class="insights-list" id="intelInsightsList">
                 {% for item in intel.insights %}
                 <li class="insight-item">
                     <span class="insight-bullet">▸</span>
@@ -124,7 +124,7 @@
                     <span class="card-subtitle">Actual recorded focus hours per course</span>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="intelSubjectBody">
                 {% if intel.subject_breakdown %}
                 <div class="subject-bars-list">
                     {% for sub in intel.subject_breakdown %}
@@ -155,7 +155,7 @@
                     <span class="card-subtitle">Actual work hours compared to days from start to finish</span>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="intelCompletedBody">
                 {% if intel.completed_analytics %}
                 <div class="completed-analytics-list">
                     {% for item in intel.completed_analytics %}
@@ -191,9 +191,9 @@
                 <h2 class="card-title">Focus Session History</h2>
                 <span class="card-subtitle">Chronological log of verified user study sessions</span>
             </div>
-            <span class="badge badge-info">{{ intel.total_sessions_count }} Session{% if intel.total_sessions_count != 1 %}s{% endif %} Logged</span>
+            <span class="badge badge-info" id="intelSessionsBadge">{{ intel.total_sessions_count }} Session{% if intel.total_sessions_count != 1 %}s{% endif %} Logged</span>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body p-0" id="intelSessionsBody">
             {% if intel.recent_sessions %}
             <div class="table-responsive">
                 <table class="data-table">

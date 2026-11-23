@@ -3,6 +3,8 @@ Database management module for Smart Study Planner.
 Handles SQLite relational database creation, task queries, updates, and transactions.
 """
 
+import os
+import shutil
 import sqlite3
 import time
 from datetime import date, datetime, timedelta
@@ -16,7 +18,16 @@ from priority_calculator import (
     parse_date,
 )
 
-DEFAULT_DB_PATH = "study_planner.db"
+if os.environ.get("VERCEL"):
+    DEFAULT_DB_PATH = "/tmp/study_planner.db"
+    orig_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
+    if not os.path.exists(DEFAULT_DB_PATH) and os.path.exists(orig_db):
+        try:
+            shutil.copy2(orig_db, DEFAULT_DB_PATH)
+        except Exception:
+            pass
+else:
+    DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
 
 
 def format_duration(seconds: Union[int, float, None]) -> str:
@@ -607,9 +618,12 @@ def get_subtasks_for_task(task_id: int, db_path: str = DEFAULT_DB_PATH) -> List[
 def log_study_session(task_id: Optional[int], minutes: int, db_path: str = DEFAULT_DB_PATH) -> int:
     """Logs a completed Pomodoro study focus session."""
     today_str = date.today().strftime("%Y-%m-%d")
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    now_iso = datetime.now().isoformat()
+    now_dt = datetime.now()
+    now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+    now_iso = now_dt.isoformat()
     duration_sec = int(minutes) * 60
+    start_dt = now_dt - timedelta(seconds=duration_sec)
+    start_iso = start_dt.isoformat()
     conn = get_db_connection(db_path)
     with conn:
         cursor = conn.cursor()
@@ -618,7 +632,7 @@ def log_study_session(task_id: Optional[int], minutes: int, db_path: str = DEFAU
                 Task_ID, Start_Time, End_Time, Duration_Seconds, 
                 Session_Date, Minutes_Spent, Status, Completed_At, Created_At
             ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?)
-        """, (task_id, now_iso, now_iso, duration_sec, today_str, minutes, now_str, now_iso))
+        """, (task_id, start_iso, now_iso, duration_sec, today_str, minutes, now_str, now_iso))
         session_id = cursor.lastrowid
         if task_id:
             cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = Total_Tracked_Seconds + ? WHERE Task_ID = ?", (duration_sec, task_id))
@@ -637,10 +651,12 @@ def get_study_streak(db_path: str = DEFAULT_DB_PATH, current_date: date = None) 
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT DISTINCT Session_Date FROM StudySessions 
+        SELECT DISTINCT Session_Date FROM StudySessions WHERE Duration_Seconds > 0 OR Minutes_Spent > 0
+        UNION
+        SELECT DISTINCT substr(Completed_At, 1, 10) FROM Tasks WHERE Task_Status = 'Completed' AND Completed_At IS NOT NULL
         ORDER BY Session_Date DESC
     """)
-    session_dates = {row["Session_Date"] for row in cursor.fetchall()}
+    session_dates = {row[0] for row in cursor.fetchall() if row[0]}
     conn.close()
 
     streak = 0
@@ -1266,9 +1282,9 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
             "calendar_span": cal_str
         })
 
-    # Genuine Study Streak (sessions >= 10 mins or completed tasks)
+    # Genuine Study Streak (sessions with recorded duration or completed tasks)
     cursor.execute("""
-        SELECT DISTINCT Session_Date FROM StudySessions WHERE Duration_Seconds >= 600
+        SELECT DISTINCT Session_Date FROM StudySessions WHERE Duration_Seconds > 0 OR Minutes_Spent > 0
         UNION
         SELECT DISTINCT substr(Completed_At, 1, 10) FROM Tasks WHERE Task_Status = 'Completed' AND Completed_At IS NOT NULL
         ORDER BY Session_Date DESC
@@ -1296,8 +1312,8 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
 
     # Contextual Smart Study Insights
     insights = []
-    if today_seconds > 0:
-        insights.append(f"You recorded {format_duration(today_seconds)} of focused study time today.")
+    if live_today_seconds > 0:
+        insights.append(f"You recorded {format_duration(live_today_seconds)} of focused study time today.")
     else:
         insights.append("No study sessions recorded yet today. Click 'Start Tracking' on any study task to begin logging focused work.")
 
@@ -1308,8 +1324,8 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
     if completed_tracked_count > 0:
         insights.append(f"Your average actual completion time across {completed_tracked_count} completed task(s) is {format_duration(avg_task_seconds)}.")
 
-    if streak_count > 1:
-        insights.append(f"🔥 Active Study Streak: You have maintained genuine study focus for {streak_count} consecutive days!")
+    if streak_count >= 1:
+        insights.append(f"🔥 Active Study Streak: You have maintained genuine study focus for {streak_count} consecutive day{'s' if streak_count != 1 else ''}!")
 
     return {
         "today_seconds": live_today_seconds,
@@ -1340,7 +1356,7 @@ def get_time_intelligence_data(db_path: str = DEFAULT_DB_PATH, current_date: dat
 
 
 def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
-    """Seeds the database with representative student tasks and multi-day focus sessions for demonstration."""
+    """Seeds the database with representative student tasks without any fake study sessions."""
     today = date.today()
     sample_tasks = [
         {
@@ -1387,21 +1403,11 @@ def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
             "importance": 2,
             "estimated_hours": 1.0,
             "status": "Pending"
-        },
-        {
-            "title": "Computer Science Database Normalization",
-            "subject": "Computer Science",
-            "deadline": (today - timedelta(days=3)).strftime("%Y-%m-%d"),
-            "difficulty": 3,
-            "importance": 4,
-            "estimated_hours": 2.5,
-            "status": "Completed"
         }
     ]
 
-    task_ids = []
     for item in sample_tasks:
-        tid = add_task(
+        add_task(
             title=item["title"],
             subject=item["subject"],
             deadline=item["deadline"],
@@ -1411,73 +1417,3 @@ def seed_sample_tasks(db_path: str = DEFAULT_DB_PATH) -> None:
             status=item["status"],
             db_path=db_path
         )
-        task_ids.append((tid, item))
-
-    # Seed multi-day focus sessions across distinct dates so time intelligence metrics reflect genuine windows
-    conn = get_db_connection(db_path)
-    with conn:
-        cursor = conn.cursor()
-        today_str = today.strftime("%Y-%m-%d")
-        now_iso = datetime.now().isoformat()
-
-        # Session 1: Today on Mathematics (35m = 2100s)
-        math_id = task_ids[0][0]
-        cursor.execute("""
-            INSERT INTO StudySessions (
-                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-            ) VALUES (?, ?, ?, 2100, ?, 35, 'completed', ?, ?)
-        """, (math_id, now_iso, now_iso, today_str, f"{today_str} 11:35:00", now_iso))
-        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 2100, First_Tracked_At = ? WHERE Task_ID = ?", (now_iso, math_id))
-
-        # Session 2: Yesterday on Physics (50m = 3000s)
-        phys_id = task_ids[1][0]
-        yest = today - timedelta(days=1)
-        yest_str = yest.strftime("%Y-%m-%d")
-        yest_iso = yest.isoformat()
-        cursor.execute("""
-            INSERT INTO StudySessions (
-                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-            ) VALUES (?, ?, ?, 3000, ?, 50, 'completed', ?, ?)
-        """, (phys_id, yest_iso, yest_iso, yest_str, f"{yest_str} 16:50:00", yest_iso))
-        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 3000, First_Tracked_At = ? WHERE Task_ID = ?", (yest_iso, phys_id))
-
-        # Session 3: 3 days ago on English Literature (45m = 2700s)
-        eng_id = task_ids[3][0]
-        d3 = today - timedelta(days=3)
-        d3_str = d3.strftime("%Y-%m-%d")
-        d3_iso = d3.isoformat()
-        cursor.execute("""
-            INSERT INTO StudySessions (
-                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-            ) VALUES (?, ?, ?, 2700, ?, 45, 'completed', ?, ?)
-        """, (eng_id, d3_iso, d3_iso, d3_str, f"{d3_str} 14:45:00", d3_iso))
-        cursor.execute("UPDATE Tasks SET Total_Tracked_Seconds = 2700, First_Tracked_At = ? WHERE Task_ID = ?", (d3_iso, eng_id))
-
-        # Sessions 4 & 5: On Completed CS Task (2 sessions of 1h 15m = 4500s each, total 9000s = 2.5h)
-        cs_id = task_ids[5][0]
-        d8 = today - timedelta(days=8)
-        d8_str = d8.strftime("%Y-%m-%d")
-        d8_iso = d8.isoformat()
-        cursor.execute("""
-            INSERT INTO StudySessions (
-                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-            ) VALUES (?, ?, ?, 4500, ?, 75, 'completed', ?, ?)
-        """, (cs_id, d8_iso, d8_iso, d8_str, f"{d8_str} 10:15:00", d8_iso))
-
-        d14 = today - timedelta(days=14)
-        d14_str = d14.strftime("%Y-%m-%d")
-        d14_iso = d14.isoformat()
-        cursor.execute("""
-            INSERT INTO StudySessions (
-                Task_ID, Start_Time, End_Time, Duration_Seconds, Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-            ) VALUES (?, ?, ?, 4500, ?, 75, 'completed', ?, ?)
-        """, (cs_id, d14_iso, d14_iso, d14_str, f"{d14_str} 15:30:00", d14_iso))
-
-        cursor.execute("""
-            UPDATE Tasks 
-            SET Total_Tracked_Seconds = 9000, 
-                First_Tracked_At = ?, 
-                Completed_At = ?
-            WHERE Task_ID = ?
-        """, (d14_iso, f"{d3_str} 17:00:00", cs_id))
-    conn.close()
