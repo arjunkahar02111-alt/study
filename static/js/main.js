@@ -268,7 +268,7 @@ function openPomodoroForTask(taskTitle, taskSubject, taskId) {
     const titleElem = document.getElementById("pomoTaskTitle");
     const subElem = document.getElementById("pomoTaskSubject");
     if (titleElem) titleElem.textContent = taskTitle;
-    if (subElem) subElem.textContent = `${taskSubject} &bull; Assignment Priority Session`;
+    if (subElem) subElem.textContent = `${taskSubject} • Focus Session`;
     openPomodoroModal();
 }
 
