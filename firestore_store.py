@@ -30,7 +30,11 @@ class FirestorePermissionError(PermissionError):
 
 
 def _project_id() -> str:
-    return os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+    pid = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+    if pid:
+        return pid
+    import firebase_auth
+    return firebase_auth.get_firebase_web_config().get("projectId", "")
 
 
 def _base_docs_url(project_id: Optional[str] = None) -> str:

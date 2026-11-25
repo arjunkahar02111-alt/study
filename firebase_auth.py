@@ -15,22 +15,35 @@ import google.oauth2.id_token
 _GOOGLE_REQUEST = google.auth.transport.requests.Request()
 _FIREBASE_ADMIN_APP = None
 
+# Public Firebase Web SDK client configuration (safe for client exposure;
+# security is enforced by Cloud Firestore Rules & Firebase Auth Authorized Domains).
+# Environment variables always take precedence when configured.
+DEFAULT_FIREBASE_WEB_CONFIG: Dict[str, str] = {
+    "apiKey": "AIzaSyAdFaKmVwhsM0gwwTxgnIZ7a3t-S9omsrI",
+    "authDomain": "study-planner-b8fe1.firebaseapp.com",
+    "projectId": "study-planner-b8fe1",
+    "storageBucket": "study-planner-b8fe1.firebasestorage.app",
+    "messagingSenderId": "612179872774",
+    "appId": "1:612179872774:web:15f8c5ffdd2d0f91430787",
+    "measurementId": "G-PW49D3MVE1",
+}
+
 
 def get_firebase_web_config() -> Dict[str, str]:
-    """Returns public Firebase Web SDK configuration from environment variables."""
+    """Returns public Firebase Web SDK configuration from env vars or public default."""
     return {
-        "apiKey": os.environ.get("FIREBASE_API_KEY", "").strip(),
-        "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", "").strip(),
-        "projectId": os.environ.get("FIREBASE_PROJECT_ID", "").strip(),
-        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "").strip(),
-        "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID", "").strip(),
-        "appId": os.environ.get("FIREBASE_APP_ID", "").strip(),
-        "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID", "").strip(),
+        "apiKey": os.environ.get("FIREBASE_API_KEY", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["apiKey"],
+        "authDomain": os.environ.get("FIREBASE_AUTH_DOMAIN", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["authDomain"],
+        "projectId": os.environ.get("FIREBASE_PROJECT_ID", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["projectId"],
+        "storageBucket": os.environ.get("FIREBASE_STORAGE_BUCKET", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["storageBucket"],
+        "messagingSenderId": os.environ.get("FIREBASE_MESSAGING_SENDER_ID", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["messagingSenderId"],
+        "appId": os.environ.get("FIREBASE_APP_ID", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["appId"],
+        "measurementId": os.environ.get("FIREBASE_MEASUREMENT_ID", "").strip() or DEFAULT_FIREBASE_WEB_CONFIG["measurementId"],
     }
 
 
 def is_firebase_configured() -> bool:
-    """Returns True when minimum required Firebase Web environment variables are present."""
+    """Returns True when minimum required Firebase Web configuration values are present."""
     cfg = get_firebase_web_config()
     return bool(
         cfg["apiKey"]
@@ -74,7 +87,7 @@ def verify_firebase_id_token(id_token: str, project_id: Optional[str] = None) ->
     if not id_token or not isinstance(id_token, str):
         raise ValueError("Missing Firebase ID token.")
 
-    target_project = (project_id or os.environ.get("FIREBASE_PROJECT_ID", "")).strip()
+    target_project = (project_id or get_firebase_web_config()["projectId"]).strip()
     if not target_project:
         raise ValueError("FIREBASE_PROJECT_ID is not configured.")
 

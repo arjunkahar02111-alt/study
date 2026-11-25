@@ -11,6 +11,8 @@ import {
     getAuth,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut,
     onAuthStateChanged,
     onIdTokenChanged,
@@ -173,31 +175,42 @@ async function exchangeTokenWithServer(user) {
 
 async function signInWithGoogle(forceSelectAccount = false) {
     if (!state.auth) {
-        showAuthError("Firebase is not configured yet. Please check FIREBASE_SETUP.md.");
+        showAuthError("Firebase authentication is initializing. Please wait a second and try again.");
         return;
     }
     const errBox = document.getElementById("authErrorBox");
     if (errBox) errBox.style.display = "none";
     setLoginLoading(true);
 
+    const provider = new GoogleAuthProvider();
+    provider.addScope("email");
+    provider.addScope("profile");
+    if (forceSelectAccount) {
+        provider.setCustomParameters({ prompt: "select_account" });
+    }
+
     try {
-        const provider = new GoogleAuthProvider();
-        provider.addScope("email");
-        provider.addScope("profile");
-        if (forceSelectAccount) {
-            provider.setCustomParameters({ prompt: "select_account" });
-        }
         const credential = await signInWithPopup(state.auth, provider);
         await exchangeTokenWithServer(credential.user);
         window.location.href = cfg.nextUrl || "/dashboard";
     } catch (err) {
+        if (err.code === "auth/popup-blocked") {
+            try {
+                await signInWithRedirect(state.auth, provider);
+                return;
+            } catch (redirErr) {
+                showAuthError(redirErr.message || "Google Sign-In redirect failed.");
+                setLoginLoading(false);
+                return;
+            }
+        }
         let msg = err.message || "Google Sign-In failed.";
         if (err.code === "auth/popup-closed-by-user") {
             msg = "Sign-in window was closed before completing authentication.";
-        } else if (err.code === "auth/popup-blocked") {
-            msg = "Pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
         } else if (err.code === "auth/unauthorized-domain") {
-            msg = "This domain is not yet listed in Firebase Authorized Domains.";
+            msg = "Add this domain (" + window.location.hostname + ") under Firebase Console → Authentication → Settings → Authorized domains.";
+        } else if (err.code === "auth/operation-not-allowed") {
+            msg = "Enable Google Sign-In in Firebase Console → Authentication → Sign-in method.";
         }
         showAuthError(msg);
         setLoginLoading(false);
@@ -263,6 +276,22 @@ function initFirebase() {
     }
     state.auth = getAuth(state.app);
     setPersistence(state.auth, browserLocalPersistence).catch(() => {});
+
+    // Handle redirect-based Google Sign-In result if popup was blocked
+    if (!cfg.isAuthenticated && window.location.pathname === "/login") {
+        getRedirectResult(state.auth)
+            .then(async (result) => {
+                if (result && result.user) {
+                    setLoginLoading(true);
+                    await exchangeTokenWithServer(result.user);
+                    window.location.href = cfg.nextUrl || "/dashboard";
+                }
+            })
+            .catch((err) => {
+                if (err && err.message) showAuthError(err.message);
+                setLoginLoading(false);
+            });
+    }
 
     try {
         state.db = initializeFirestore(state.app, {

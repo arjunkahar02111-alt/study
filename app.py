@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import (
     Flask,
     Response,
@@ -33,6 +34,7 @@ from priority_calculator import calculate_priority, is_overdue, parse_date
 load_dotenv()
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key = os.environ.get("SECRET_KEY", "smart-study-planner-secret-key-2026")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,

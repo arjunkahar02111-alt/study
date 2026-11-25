@@ -56,23 +56,11 @@
                 <span>Restoring your SYNTRIQ workspace...</span>
             </div>
 
-            {% if not firebase_enabled %}
-            <div class="alert alert-warning" style="margin-bottom: 18px; text-align: left;">
-                <div>
-                    <strong>Firebase Configuration Required</strong>
-                    <p style="font-size: 0.85rem; margin-top: 4px;">
-                        Add your Firebase Web App credentials (<code>FIREBASE_API_KEY</code>, <code>FIREBASE_AUTH_DOMAIN</code>, <code>FIREBASE_PROJECT_ID</code>, etc.) to <code>.env</code> or Vercel Environment Variables. See <code>FIREBASE_SETUP.md</code> for exact steps.
-                    </p>
-                </div>
-            </div>
-            {% endif %}
-
             <button
                 type="button"
                 id="googleSignInBtn"
                 class="btn-google-auth"
                 onclick="window.SyntriqAuth && window.SyntriqAuth.signInWithGoogle(false);"
-                {% if not firebase_enabled %}disabled aria-disabled="true"{% endif %}
             >
                 <span class="google-btn-content" id="googleBtnContent">
                     <svg class="google-g-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -94,7 +82,6 @@
                 id="googleSwitchAccountBtn"
                 class="btn-text-link auth-switch-link"
                 onclick="window.SyntriqAuth && window.SyntriqAuth.signInWithGoogle(true);"
-                {% if not firebase_enabled %}disabled{% endif %}
             >
                 Choose or switch another Google account
             </button>
