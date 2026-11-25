@@ -635,7 +635,7 @@ def build_docx(paths: dict, output_path: str):
     hdr = section.header
     hp = hdr.paragraphs[0]
     hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    hr = hp.add_run("SYNTRIQ: Smart Study Planner & Time Intelligence System — IB Computer Science IA")
+    hr = hp.add_run("")
     hr.font.size = Pt(8.5)
     hr.font.color.rgb = MUTED
 
