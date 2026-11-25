@@ -51,13 +51,13 @@ EXISTING_IA_SHOTS = os.path.join(BASE_DIR, "screenshots", "ia")
 DOCX_ASSETS_DIR = os.path.join(SCRATCH_DIR, "docx_assets")
 DEFAULT_DOCX_PATH = os.path.join(BASE_DIR, "SYNTRIQ_IB_CS_Internal_Assessment.docx")
 
-# Palette matching SYNTRIQ & clean academic aesthetic
-NAVY = RGBColor(0x0F, 0x17, 0x2A)
-SLATE = RGBColor(0x33, 0x41, 0x55)
-MUTED = RGBColor(0x64, 0x74, 0x8B)
-BODY = RGBColor(0x1E, 0x29, 0x3B)
-ORANGE = RGBColor(0xEA, 0x58, 0x0C)
-DARK_ORANGE = RGBColor(0xC2, 0x41, 0x0C)
+# Classic academic Word/Google Docs palette (pure black & neutral gray, matching IB IA exemplars)
+NAVY = RGBColor(0x00, 0x00, 0x00)
+SLATE = RGBColor(0x00, 0x00, 0x00)
+MUTED = RGBColor(0x33, 0x33, 0x33)
+BODY = RGBColor(0x00, 0x00, 0x00)
+ORANGE = RGBColor(0x00, 0x00, 0x00)
+DARK_ORANGE = RGBColor(0x00, 0x00, 0x00)
 
 
 def count_words(text: str) -> int:
@@ -160,93 +160,93 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
             raise FileNotFoundError(f"Missing expected IA screenshot: {p}")
         paths[key] = p
 
-    # Render SVG architecture & UML/ERD diagrams + live /login and /routines views
+    # Render classic UML / draw.io style diagrams (clean neutral monochrome matching IB IA exemplars)
     arch_svg = """
-    <svg viewBox="0 0 820 265" width="820" height="265" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Segoe UI', Arial, sans-serif; background:#ffffff;">
+    <svg viewBox="0 0 820 265" width="820" height="265" xmlns="http://www.w3.org/2000/svg" style="font-family: Arial, Helvetica, sans-serif; background:#ffffff;">
       <rect x="0" y="0" width="820" height="265" fill="#ffffff"/>
       <!-- View Layer -->
-      <rect x="16" y="20" width="185" height="225" rx="8" fill="#fff7ed" stroke="#f97316" stroke-width="1.8"/>
-      <text x="108" y="42" text-anchor="middle" font-size="11.5" font-weight="700" fill="#9a3412">VIEW (Browser UI)</text>
-      <rect x="28" y="54" width="161" height="26" rx="4" fill="#ffffff" stroke="#fdba74"/>
-      <text x="108" y="71" text-anchor="middle" font-size="9.5" fill="#1e293b">Google Sign-In (/login)</text>
-      <rect x="28" y="88" width="161" height="26" rx="4" fill="#ffffff" stroke="#fdba74"/>
-      <text x="108" y="105" text-anchor="middle" font-size="9.5" fill="#1e293b">Dashboard &amp; Heatmap</text>
-      <rect x="28" y="122" width="161" height="26" rx="4" fill="#ffffff" stroke="#fdba74"/>
-      <text x="108" y="139" text-anchor="middle" font-size="9.5" fill="#1e293b">Study Plan &amp; What-If Sim</text>
-      <rect x="28" y="156" width="161" height="26" rx="4" fill="#ffffff" stroke="#fdba74"/>
-      <text x="108" y="173" text-anchor="middle" font-size="9.5" fill="#1e293b">Weekly Routines &amp; Settings</text>
-      <rect x="28" y="190" width="161" height="42" rx="4" fill="#ffffff" stroke="#fdba74"/>
-      <text x="108" y="207" text-anchor="middle" font-size="9.3" fill="#1e293b">Time Intel &amp; Focus Timer</text>
-      <text x="108" y="222" text-anchor="middle" font-size="8.4" fill="#64748b">(Firebase Web SDK + main.js)</text>
+      <rect x="16" y="20" width="185" height="225" rx="3" fill="#fafafa" stroke="#222222" stroke-width="1.5"/>
+      <text x="108" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#000000">VIEW (Browser UI)</text>
+      <rect x="28" y="54" width="161" height="26" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="108" y="71" text-anchor="middle" font-size="9.5" fill="#000000">Google Sign-In (/login)</text>
+      <rect x="28" y="88" width="161" height="26" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="108" y="105" text-anchor="middle" font-size="9.5" fill="#000000">Dashboard &amp; Heatmap</text>
+      <rect x="28" y="122" width="161" height="26" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="108" y="139" text-anchor="middle" font-size="9.5" fill="#000000">Study Plan &amp; What-If Sim</text>
+      <rect x="28" y="156" width="161" height="26" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="108" y="173" text-anchor="middle" font-size="9.5" fill="#000000">Weekly Routines &amp; Settings</text>
+      <rect x="28" y="190" width="161" height="42" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="108" y="207" text-anchor="middle" font-size="9.3" fill="#000000">Time Intel &amp; Focus Timer</text>
+      <text x="108" y="222" text-anchor="middle" font-size="8.4" fill="#333333">(Firebase Web SDK + main.js)</text>
 
       <!-- Arrow View <-> Controller -->
-      <line x1="201" y1="112" x2="256" y2="112" stroke="#475569" stroke-width="1.6"/>
-      <polygon points="256,112 248,108 248,116" fill="#475569"/>
-      <line x1="256" y1="145" x2="201" y2="145" stroke="#475569" stroke-width="1.6"/>
-      <polygon points="201,145 209,141 209,149" fill="#475569"/>
-      <text x="228" y="104" text-anchor="middle" font-size="8" fill="#475569">HTTPS + Token</text>
-      <text x="228" y="158" text-anchor="middle" font-size="8" fill="#475569">HTML / JSON</text>
+      <line x1="201" y1="112" x2="256" y2="112" stroke="#222222" stroke-width="1.4"/>
+      <polygon points="256,112 248,108 248,116" fill="#222222"/>
+      <line x1="256" y1="145" x2="201" y2="145" stroke="#222222" stroke-width="1.4"/>
+      <polygon points="201,145 209,141 209,149" fill="#222222"/>
+      <text x="228" y="104" text-anchor="middle" font-size="8" fill="#000000">HTTPS + Token</text>
+      <text x="228" y="158" text-anchor="middle" font-size="8" fill="#000000">HTML / JSON</text>
 
       <!-- Controller + Auth Layer -->
-      <rect x="258" y="28" width="210" height="208" rx="8" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8"/>
-      <text x="363" y="50" text-anchor="middle" font-size="11.2" font-weight="700" fill="#1e40af">CONTROLLER &amp; AUTH</text>
-      <text x="363" y="66" text-anchor="middle" font-size="9" font-weight="600" fill="#1d4ed8">(app.py + firebase_auth.py)</text>
-      <text x="363" y="90" text-anchor="middle" font-size="9.2" fill="#1e293b">• Verify Firebase ID Tokens (UID)</text>
-      <text x="363" y="110" text-anchor="middle" font-size="9.2" fill="#1e293b">• @login_required Route Guard</text>
-      <text x="363" y="130" text-anchor="middle" font-size="9.2" fill="#1e293b">• Server Input Validation (HTTP 400)</text>
-      <text x="363" y="150" text-anchor="middle" font-size="9.2" fill="#1e293b">• Time-Tracking &amp; Simulator APIs</text>
-      <text x="363" y="170" text-anchor="middle" font-size="9.2" fill="#1e293b">• Routines, Settings &amp; .ics Export</text>
-      <rect x="274" y="185" width="178" height="36" rx="5" fill="#ffffff" stroke="#93c5fd"/>
-      <text x="363" y="201" text-anchor="middle" font-size="9.2" font-weight="700" fill="#1e3a8a">Dual-Store Router (store.py)</text>
-      <text x="363" y="214" text-anchor="middle" font-size="8.2" fill="#475569">Routes by verified UID &amp; ID token</text>
+      <rect x="258" y="28" width="210" height="208" rx="3" fill="#f5f5f5" stroke="#222222" stroke-width="1.5"/>
+      <text x="363" y="50" text-anchor="middle" font-size="11" font-weight="700" fill="#000000">CONTROLLER &amp; AUTH</text>
+      <text x="363" y="66" text-anchor="middle" font-size="9" font-weight="600" fill="#222222">(app.py + firebase_auth.py)</text>
+      <text x="363" y="90" text-anchor="middle" font-size="9.2" fill="#000000">• Verify Firebase ID Tokens (UID)</text>
+      <text x="363" y="110" text-anchor="middle" font-size="9.2" fill="#000000">• @login_required Route Guard</text>
+      <text x="363" y="130" text-anchor="middle" font-size="9.2" fill="#000000">• Server Input Validation (HTTP 400)</text>
+      <text x="363" y="150" text-anchor="middle" font-size="9.2" fill="#000000">• Time-Tracking &amp; Simulator APIs</text>
+      <text x="363" y="170" text-anchor="middle" font-size="9.2" fill="#000000">• Routines, Settings &amp; .ics Export</text>
+      <rect x="274" y="185" width="178" height="36" rx="2" fill="#ffffff" stroke="#555555"/>
+      <text x="363" y="201" text-anchor="middle" font-size="9.2" font-weight="700" fill="#000000">Dual-Store Router (store.py)</text>
+      <text x="363" y="214" text-anchor="middle" font-size="8.2" fill="#333333">Routes by verified UID &amp; ID token</text>
 
       <!-- Arrows Controller -> Models -->
-      <line x1="468" y1="80" x2="520" y2="58" stroke="#475569" stroke-width="1.6"/>
-      <polygon points="520,58 511,57 514,65" fill="#475569"/>
-      <line x1="468" y1="145" x2="520" y2="145" stroke="#475569" stroke-width="1.6"/>
-      <polygon points="520,145 512,141 512,149" fill="#475569"/>
-      <line x1="468" y1="204" x2="520" y2="218" stroke="#475569" stroke-width="1.6"/>
-      <polygon points="520,218 514,212 511,220" fill="#475569"/>
+      <line x1="468" y1="80" x2="520" y2="58" stroke="#222222" stroke-width="1.4"/>
+      <polygon points="520,58 511,57 514,65" fill="#222222"/>
+      <line x1="468" y1="145" x2="520" y2="145" stroke="#222222" stroke-width="1.4"/>
+      <polygon points="520,145 512,141 512,149" fill="#222222"/>
+      <line x1="468" y1="204" x2="520" y2="218" stroke="#222222" stroke-width="1.4"/>
+      <polygon points="520,218 514,212 511,220" fill="#222222"/>
 
       <!-- Algorithmic Model -->
-      <rect x="522" y="16" width="282" height="80" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.8"/>
-      <text x="663" y="36" text-anchor="middle" font-size="10.5" font-weight="700" fill="#166534">ALGORITHMIC MODEL (priority_calculator.py)</text>
-      <text x="663" y="54" text-anchor="middle" font-size="9" fill="#1e293b">calculate_urgency() &bull; calculate_workload()</text>
-      <text x="663" y="70" text-anchor="middle" font-size="9" fill="#1e293b">calculate_priority() = 0.4U + 0.3I + 0.2D + 0.1W</text>
-      <text x="663" y="86" text-anchor="middle" font-size="9" fill="#1e293b">is_overdue() &bull; days_remaining()</text>
+      <rect x="522" y="16" width="282" height="80" rx="3" fill="#ffffff" stroke="#222222" stroke-width="1.5"/>
+      <text x="663" y="36" text-anchor="middle" font-size="10.2" font-weight="700" fill="#000000">ALGORITHMIC MODEL (priority_calculator.py)</text>
+      <text x="663" y="54" text-anchor="middle" font-size="9" fill="#000000">calculate_urgency() &bull; calculate_workload()</text>
+      <text x="663" y="70" text-anchor="middle" font-size="9" fill="#000000">calculate_priority() = 0.4U + 0.3I + 0.2D + 0.1W</text>
+      <text x="663" y="86" text-anchor="middle" font-size="9" fill="#000000">is_overdue() &bull; days_remaining()</text>
 
       <!-- Cloud Firestore Model -->
-      <rect x="522" y="106" width="282" height="78" rx="8" fill="#fefce8" stroke="#ca8a04" stroke-width="1.8"/>
-      <text x="663" y="126" text-anchor="middle" font-size="10.5" font-weight="700" fill="#854d0e">CLOUD FIRESTORE (firestore_store.py)</text>
-      <text x="663" y="144" text-anchor="middle" font-size="8.9" fill="#1e293b">UID-Isolated Paths: users/{uid}/{collection}</text>
-      <text x="663" y="160" text-anchor="middle" font-size="8.9" fill="#1e293b">Enforced by firestore.rules (request.auth.uid == uid)</text>
-      <text x="663" y="175" text-anchor="middle" font-size="8.5" fill="#475569">profile, settings, routines, tasks, sessions</text>
+      <rect x="522" y="106" width="282" height="78" rx="3" fill="#f5f5f5" stroke="#222222" stroke-width="1.5"/>
+      <text x="663" y="126" text-anchor="middle" font-size="10.2" font-weight="700" fill="#000000">CLOUD FIRESTORE (firestore_store.py)</text>
+      <text x="663" y="144" text-anchor="middle" font-size="8.9" fill="#000000">UID-Isolated Paths: users/{uid}/{collection}</text>
+      <text x="663" y="160" text-anchor="middle" font-size="8.9" fill="#000000">Enforced by firestore.rules (request.auth.uid == uid)</text>
+      <text x="663" y="175" text-anchor="middle" font-size="8.5" fill="#333333">profile, settings, routines, tasks, sessions</text>
 
       <!-- SQLite Fallback Model -->
-      <rect x="522" y="193" width="282" height="58" rx="8" fill="#f8fafc" stroke="#334155" stroke-width="1.8"/>
-      <text x="663" y="213" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0f172a">RELATIONAL FALLBACK (database.py)</text>
-      <text x="663" y="230" text-anchor="middle" font-size="8.8" fill="#1e293b">SQLite parameterized CRUD scoped by User_UID</text>
-      <text x="663" y="244" text-anchor="middle" font-size="8.4" fill="#475569">Used for offline tests &amp; local development</text>
+      <rect x="522" y="193" width="282" height="58" rx="3" fill="#ffffff" stroke="#222222" stroke-width="1.5"/>
+      <text x="663" y="213" text-anchor="middle" font-size="10.2" font-weight="700" fill="#000000">RELATIONAL FALLBACK (database.py)</text>
+      <text x="663" y="230" text-anchor="middle" font-size="8.8" fill="#000000">SQLite parameterized CRUD scoped by User_UID</text>
+      <text x="663" y="244" text-anchor="middle" font-size="8.4" fill="#333333">Used for offline tests &amp; local development</text>
     </svg>
     """
 
     uml_erd_svg = """
-    <svg viewBox="0 0 820 265" width="820" height="265" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Segoe UI', Arial, sans-serif; background:#ffffff;">
+    <svg viewBox="0 0 820 265" width="820" height="265" xmlns="http://www.w3.org/2000/svg" style="font-family: Arial, Helvetica, sans-serif; background:#ffffff;">
       <rect x="0" y="0" width="820" height="265" fill="#ffffff"/>
-      <text x="155" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">UML Use Case Diagram</text>
+      <text x="155" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#000000">UML Use Case Diagram</text>
 
       <!-- Actor -->
-      <circle cx="44" cy="105" r="12" fill="none" stroke="#1e293b" stroke-width="1.8"/>
-      <line x1="44" y1="117" x2="44" y2="160" stroke="#1e293b" stroke-width="1.8"/>
-      <line x1="24" y1="133" x2="64" y2="133" stroke="#1e293b" stroke-width="1.8"/>
-      <line x1="44" y1="160" x2="27" y2="190" stroke="#1e293b" stroke-width="1.8"/>
-      <line x1="44" y1="160" x2="61" y2="190" stroke="#1e293b" stroke-width="1.8"/>
-      <text x="44" y="208" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1e293b">Student</text>
-      <text x="44" y="220" text-anchor="middle" font-size="8" fill="#64748b">(Google Auth)</text>
+      <circle cx="44" cy="105" r="12" fill="none" stroke="#000000" stroke-width="1.6"/>
+      <line x1="44" y1="117" x2="44" y2="160" stroke="#000000" stroke-width="1.6"/>
+      <line x1="24" y1="133" x2="64" y2="133" stroke="#000000" stroke-width="1.6"/>
+      <line x1="44" y1="160" x2="27" y2="190" stroke="#000000" stroke-width="1.6"/>
+      <line x1="44" y1="160" x2="61" y2="190" stroke="#000000" stroke-width="1.6"/>
+      <text x="44" y="208" text-anchor="middle" font-size="9.5" font-weight="700" fill="#000000">Student</text>
+      <text x="44" y="220" text-anchor="middle" font-size="8" fill="#333333">(Google Auth)</text>
 
       <!-- System Boundary -->
-      <rect x="108" y="28" width="194" height="226" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.4"/>
-      <g fill="#ffffff" stroke="#334155" stroke-width="1.2">
+      <rect x="108" y="28" width="194" height="226" rx="2" fill="#fafafa" stroke="#222222" stroke-width="1.3"/>
+      <g fill="#ffffff" stroke="#222222" stroke-width="1.1">
         <ellipse cx="205" cy="49" rx="82" ry="12"/>
         <ellipse cx="205" cy="80" rx="82" ry="12"/>
         <ellipse cx="205" cy="111" rx="82" ry="12"/>
@@ -255,7 +255,7 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
         <ellipse cx="205" cy="204" rx="82" ry="12"/>
         <ellipse cx="205" cy="235" rx="82" ry="12"/>
       </g>
-      <g font-size="8.6" text-anchor="middle" fill="#0f172a">
+      <g font-size="8.6" text-anchor="middle" fill="#000000">
         <text x="205" y="52">Sign In &amp; Isolate Workspace</text>
         <text x="205" y="83">Manage Tasks &amp; Routines</text>
         <text x="205" y="114">View Prioritized Study Plan</text>
@@ -264,7 +264,7 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
         <text x="205" y="207">Inspect Time Intelligence</text>
         <text x="205" y="238">Export .ics Calendar</text>
       </g>
-      <g stroke="#475569" stroke-width="1.1">
+      <g stroke="#222222" stroke-width="1.0">
         <line x1="60" y1="122" x2="123" y2="49"/>
         <line x1="60" y1="126" x2="123" y2="80"/>
         <line x1="60" y1="130" x2="123" y2="111"/>
@@ -275,16 +275,16 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
       </g>
 
       <!-- Divider -->
-      <line x1="320" y1="12" x2="320" y2="253" stroke="#cbd5e1" stroke-dasharray="4,4"/>
+      <line x1="320" y1="12" x2="320" y2="253" stroke="#999999" stroke-dasharray="4,4"/>
 
       <!-- Right: UID-Isolated Schema ERD -->
-      <text x="570" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">Multi-User Data Schema (Firestore + SQLite ERD)</text>
+      <text x="570" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#000000">Multi-User Data Schema (Firestore + SQLite ERD)</text>
 
       <!-- Tasks Table -->
-      <rect x="336" y="30" width="225" height="224" rx="5" fill="#ffffff" stroke="#0f172a" stroke-width="1.4"/>
-      <rect x="336" y="30" width="225" height="21" rx="4" fill="#fff7ed" stroke="#0f172a" stroke-width="1.2"/>
-      <text x="448" y="44" text-anchor="middle" font-size="9.5" font-weight="700" fill="#9a3412">Tasks (users/{uid}/tasks)</text>
-      <g font-size="8.2" fill="#1e293b" font-family="Consolas, monospace">
+      <rect x="336" y="30" width="225" height="224" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+      <rect x="336" y="30" width="225" height="21" rx="2" fill="#ededed" stroke="#000000" stroke-width="1.2"/>
+      <text x="448" y="44" text-anchor="middle" font-size="9.5" font-weight="700" fill="#000000">Tasks (users/{uid}/tasks)</text>
+      <g font-size="8.2" fill="#000000" font-family="Courier New, monospace">
         <text x="343" y="65">PK Task_ID : INTEGER / TEXT</text>
         <text x="343" y="80">FK ownerUid / User_UID : TEXT</text>
         <text x="343" y="95">   Task_Title : TEXT NOT NULL</text>
@@ -301,20 +301,20 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
       </g>
 
       <!-- Routines & Profile -->
-      <rect x="590" y="30" width="214" height="68" rx="5" fill="#ffffff" stroke="#0f172a" stroke-width="1.3"/>
-      <rect x="590" y="30" width="214" height="19" rx="4" fill="#f0fdf4" stroke="#0f172a"/>
-      <text x="697" y="43" text-anchor="middle" font-size="9" font-weight="700" fill="#166534">Routines, Profile &amp; Settings</text>
-      <g font-size="8" fill="#1e293b" font-family="Consolas, monospace">
+      <rect x="590" y="30" width="214" height="68" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+      <rect x="590" y="30" width="214" height="19" rx="2" fill="#ededed" stroke="#000000"/>
+      <text x="697" y="43" text-anchor="middle" font-size="9" font-weight="700" fill="#000000">Routines, Profile &amp; Settings</text>
+      <g font-size="8" fill="#000000" font-family="Courier New, monospace">
         <text x="596" y="61">users/{uid}/profile/main</text>
         <text x="596" y="74">users/{uid}/settings/preferences</text>
         <text x="596" y="87">users/{uid}/routines/{id}</text>
       </g>
 
       <!-- StudySessions -->
-      <rect x="590" y="108" width="214" height="72" rx="5" fill="#ffffff" stroke="#0f172a" stroke-width="1.3"/>
-      <rect x="590" y="108" width="214" height="19" rx="4" fill="#f1f5f9" stroke="#0f172a"/>
-      <text x="697" y="121" text-anchor="middle" font-size="9" font-weight="700">StudySessions (1:N)</text>
-      <g font-size="8" fill="#1e293b" font-family="Consolas, monospace">
+      <rect x="590" y="108" width="214" height="72" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+      <rect x="590" y="108" width="214" height="19" rx="2" fill="#ededed" stroke="#000000"/>
+      <text x="697" y="121" text-anchor="middle" font-size="9" font-weight="700" fill="#000000">StudySessions (1:N)</text>
+      <g font-size="8" fill="#000000" font-family="Courier New, monospace">
         <text x="596" y="139">PK Session_ID, ownerUid</text>
         <text x="596" y="152">FK Task_ID -&gt; Tasks</text>
         <text x="596" y="165">   Start_Time, End_Time, Status</text>
@@ -322,17 +322,17 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
       </g>
 
       <!-- ActiveSession -->
-      <rect x="590" y="190" width="214" height="64" rx="5" fill="#ffffff" stroke="#0f172a" stroke-width="1.3"/>
-      <rect x="590" y="190" width="214" height="19" rx="4" fill="#eff6ff" stroke="#0f172a"/>
-      <text x="697" y="203" text-anchor="middle" font-size="9" font-weight="700">ActiveSession (1 per UID)</text>
-      <g font-size="8" fill="#1e293b" font-family="Consolas, monospace">
+      <rect x="590" y="190" width="214" height="64" rx="2" fill="#ffffff" stroke="#000000" stroke-width="1.3"/>
+      <rect x="590" y="190" width="214" height="19" rx="2" fill="#ededed" stroke="#000000"/>
+      <text x="697" y="203" text-anchor="middle" font-size="9" font-weight="700" fill="#000000">ActiveSession (1 per UID)</text>
+      <g font-size="8" fill="#000000" font-family="Courier New, monospace">
         <text x="596" y="221">PK active_session/current</text>
         <text x="596" y="234">FK Task_ID, Session_ID, ownerUid</text>
         <text x="596" y="246">   Start_Timestamp, Accumulated_Sec</text>
       </g>
 
       <!-- Connectors -->
-      <g stroke="#334155" stroke-width="1.2">
+      <g stroke="#222222" stroke-width="1.1">
         <line x1="561" y1="65" x2="590" y2="65"/>
         <line x1="561" y1="145" x2="590" y2="145"/>
         <line x1="561" y1="222" x2="590" y2="222"/>
@@ -341,76 +341,76 @@ def render_diagrams_and_fresh_screenshots(assets_dir: str) -> dict:
     """
 
     flowchart_svg = """
-    <svg viewBox="0 0 820 250" width="820" height="250" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Segoe UI', Arial, sans-serif; background:#ffffff;">
+    <svg viewBox="0 0 820 250" width="820" height="250" xmlns="http://www.w3.org/2000/svg" style="font-family: Arial, Helvetica, sans-serif; background:#ffffff;">
       <rect x="0" y="0" width="820" height="250" fill="#ffffff"/>
-      <text x="410" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">System Execution Flowchart: Google Auth, Priority Calculation &amp; Single-Session Lock</text>
+      <text x="410" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#000000">System Execution Flowchart: Google Auth, Priority Calculation &amp; Single-Session Lock</text>
 
       <!-- Step 1: Start & Auth -->
-      <rect x="20" y="42" width="128" height="44" rx="20" fill="#fff7ed" stroke="#f97316" stroke-width="1.6"/>
-      <text x="84" y="61" text-anchor="middle" font-size="9.2" font-weight="700" fill="#9a3412">Start / Open App</text>
-      <text x="84" y="75" text-anchor="middle" font-size="8.2" fill="#1e293b">Google Sign-In (/login)</text>
+      <rect x="20" y="42" width="128" height="44" rx="20" fill="#fafafa" stroke="#222222" stroke-width="1.4"/>
+      <text x="84" y="61" text-anchor="middle" font-size="9.2" font-weight="700" fill="#000000">Start / Open App</text>
+      <text x="84" y="75" text-anchor="middle" font-size="8.2" fill="#222222">Google Sign-In (/login)</text>
 
-      <line x1="148" y1="64" x2="180" y2="64" stroke="#475569" stroke-width="1.5"/>
-      <polygon points="180,64 173,60 173,68" fill="#475569"/>
+      <line x1="148" y1="64" x2="180" y2="64" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="180,64 173,60 173,68" fill="#222222"/>
 
       <!-- Step 2: Token Verification Decision -->
-      <polygon points="248,34 316,64 248,94 180,64" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.6"/>
-      <text x="248" y="61" text-anchor="middle" font-size="8.6" font-weight="700" fill="#1e40af">Valid JWT</text>
-      <text x="248" y="73" text-anchor="middle" font-size="8.2" fill="#1e40af">&amp; UID?</text>
+      <polygon points="248,34 316,64 248,94 180,64" fill="#ffffff" stroke="#222222" stroke-width="1.4"/>
+      <text x="248" y="61" text-anchor="middle" font-size="8.6" font-weight="700" fill="#000000">Valid JWT</text>
+      <text x="248" y="73" text-anchor="middle" font-size="8.2" fill="#000000">&amp; UID?</text>
 
       <!-- Invalid -> Reject -->
-      <line x1="248" y1="94" x2="248" y2="128" stroke="#dc2626" stroke-width="1.4"/>
-      <polygon points="248,128 244,121 252,121" fill="#dc2626"/>
-      <text x="262" y="114" font-size="8" font-weight="700" fill="#dc2626">No</text>
-      <rect x="186" y="128" width="124" height="36" rx="5" fill="#fef2f2" stroke="#dc2626" stroke-width="1.3"/>
-      <text x="248" y="144" text-anchor="middle" font-size="8.4" font-weight="700" fill="#991b1b">Reject (HTTP 401/302)</text>
-      <text x="248" y="156" text-anchor="middle" font-size="7.8" fill="#7f1d1d">Deny cross-UID access</text>
+      <line x1="248" y1="94" x2="248" y2="128" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="248,128 244,121 252,121" fill="#222222"/>
+      <text x="262" y="114" font-size="8" font-weight="700" fill="#000000">No</text>
+      <rect x="186" y="128" width="124" height="36" rx="2" fill="#f2f2f2" stroke="#222222" stroke-width="1.2"/>
+      <text x="248" y="144" text-anchor="middle" font-size="8.4" font-weight="700" fill="#000000">Reject (HTTP 401/302)</text>
+      <text x="248" y="156" text-anchor="middle" font-size="7.8" fill="#222222">Deny cross-UID access</text>
 
       <!-- Valid -> Workspace -->
-      <line x1="316" y1="64" x2="352" y2="64" stroke="#16a34a" stroke-width="1.5"/>
-      <polygon points="352,64 345,60 345,68" fill="#16a34a"/>
-      <text x="333" y="57" font-size="8" font-weight="700" fill="#16a34a">Yes</text>
+      <line x1="316" y1="64" x2="352" y2="64" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="352,64 345,60 345,68" fill="#222222"/>
+      <text x="333" y="57" font-size="8" font-weight="700" fill="#000000">Yes</text>
 
-      <rect x="352" y="40" width="145" height="48" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.6"/>
-      <text x="424" y="59" text-anchor="middle" font-size="8.8" font-weight="700" fill="#166534">Load users/{uid} Store</text>
-      <text x="424" y="73" text-anchor="middle" font-size="8.1" fill="#1e293b">Validate Input (HTTP 400 if bad)</text>
+      <rect x="352" y="40" width="145" height="48" rx="2" fill="#ffffff" stroke="#222222" stroke-width="1.4"/>
+      <text x="424" y="59" text-anchor="middle" font-size="8.8" font-weight="700" fill="#000000">Load users/{uid} Store</text>
+      <text x="424" y="73" text-anchor="middle" font-size="8.1" fill="#222222">Validate Input (HTTP 400 if bad)</text>
 
-      <line x1="497" y1="64" x2="532" y2="64" stroke="#475569" stroke-width="1.5"/>
-      <polygon points="532,64 525,60 525,68" fill="#475569"/>
+      <line x1="497" y1="64" x2="532" y2="64" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="532,64 525,60 525,68" fill="#222222"/>
 
       <!-- Step 4: Priority Engine -->
-      <rect x="532" y="38" width="266" height="52" rx="6" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
-      <text x="665" y="57" text-anchor="middle" font-size="9" font-weight="700" fill="#0f172a">Compute Priority_Score &amp; Sort Plan</text>
-      <text x="665" y="72" text-anchor="middle" font-size="8.2" fill="#1e293b">0.4U + 0.3I + 0.2D + 0.1W (W=3 if hrs NULL)</text>
-      <text x="665" y="84" text-anchor="middle" font-size="7.8" fill="#64748b">Timsort: (-Priority_Score, Task_Deadline)</text>
+      <rect x="532" y="38" width="266" height="52" rx="2" fill="#fafafa" stroke="#222222" stroke-width="1.4"/>
+      <text x="665" y="57" text-anchor="middle" font-size="9" font-weight="700" fill="#000000">Compute Priority_Score &amp; Sort Plan</text>
+      <text x="665" y="72" text-anchor="middle" font-size="8.2" fill="#000000">0.4U + 0.3I + 0.2D + 0.1W (W=3 if hrs NULL)</text>
+      <text x="665" y="84" text-anchor="middle" font-size="7.8" fill="#333333">Timsort: (-Priority_Score, Task_Deadline)</text>
 
       <!-- Arrow down to Session Lock -->
-      <line x1="665" y1="90" x2="665" y2="128" stroke="#475569" stroke-width="1.5"/>
-      <polygon points="665,128 661,121 669,121" fill="#475569"/>
+      <line x1="665" y1="90" x2="665" y2="128" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="665,128 661,121 669,121" fill="#222222"/>
 
       <!-- Step 5: Session Conflict Diamond -->
-      <polygon points="665,128 755,164 665,200 575,164" fill="#fefce8" stroke="#ca8a04" stroke-width="1.6"/>
-      <text x="665" y="160" text-anchor="middle" font-size="8.5" font-weight="700" fill="#854d0e">Another Task</text>
-      <text x="665" y="172" text-anchor="middle" font-size="8.2" fill="#854d0e">Active?</text>
+      <polygon points="665,128 755,164 665,200 575,164" fill="#ffffff" stroke="#222222" stroke-width="1.4"/>
+      <text x="665" y="160" text-anchor="middle" font-size="8.5" font-weight="700" fill="#000000">Another Task</text>
+      <text x="665" y="172" text-anchor="middle" font-size="8.2" fill="#000000">Active?</text>
 
       <!-- Conflict Yes -> Prompt & Archive -->
-      <line x1="575" y1="164" x2="515" y2="164" stroke="#ca8a04" stroke-width="1.5"/>
-      <polygon points="515,164 522,160 522,168" fill="#ca8a04"/>
-      <text x="546" y="157" font-size="8" font-weight="700" fill="#854d0e">Yes</text>
+      <line x1="575" y1="164" x2="515" y2="164" stroke="#222222" stroke-width="1.3"/>
+      <polygon points="515,164 522,160 522,168" fill="#222222"/>
+      <text x="546" y="157" font-size="8" font-weight="700" fill="#000000">Yes</text>
 
-      <rect x="336" y="142" width="179" height="44" rx="6" fill="#fff7ed" stroke="#ea580c" stroke-width="1.4"/>
-      <text x="425" y="160" text-anchor="middle" font-size="8.5" font-weight="700" fill="#9a3412">Confirm Switch / Preserve</text>
-      <text x="425" y="174" text-anchor="middle" font-size="8" fill="#1e293b">Save prior elapsed to StudySessions</text>
+      <rect x="336" y="142" width="179" height="44" rx="2" fill="#fafafa" stroke="#222222" stroke-width="1.3"/>
+      <text x="425" y="160" text-anchor="middle" font-size="8.5" font-weight="700" fill="#000000">Confirm Switch / Preserve</text>
+      <text x="425" y="174" text-anchor="middle" font-size="8" fill="#222222">Save prior elapsed to StudySessions</text>
 
       <!-- Conflict No -> Start Clock -->
-      <line x1="665" y1="200" x2="665" y2="218" stroke="#16a34a" stroke-width="1.4"/>
-      <text x="673" y="212" font-size="8" font-weight="700" fill="#16a34a">No</text>
-      <line x1="425" y1="186" x2="425" y2="218" stroke="#16a34a" stroke-width="1.4"/>
-      <line x1="425" y1="218" x2="665" y2="218" stroke="#16a34a" stroke-width="1.4"/>
+      <line x1="665" y1="200" x2="665" y2="218" stroke="#222222" stroke-width="1.3"/>
+      <text x="673" y="212" font-size="8" font-weight="700" fill="#000000">No</text>
+      <line x1="425" y1="186" x2="425" y2="218" stroke="#222222" stroke-width="1.3"/>
+      <line x1="425" y1="218" x2="665" y2="218" stroke="#222222" stroke-width="1.3"/>
 
-      <line x1="545" y1="218" x2="545" y2="225" stroke="#16a34a" stroke-width="1.4"/>
-      <rect x="348" y="218" width="450" height="26" rx="12" fill="#0f172a"/>
-      <text x="573" y="235" text-anchor="middle" font-size="8.5" font-weight="700" fill="#ffffff">Write ActiveSession (Start_Timestamp) -&gt; Stream Live Time Intelligence Metrics &amp; .ics Export</text>
+      <line x1="545" y1="218" x2="545" y2="225" stroke="#222222" stroke-width="1.3"/>
+      <rect x="348" y="218" width="450" height="26" rx="12" fill="#ededed" stroke="#222222" stroke-width="1.3"/>
+      <text x="573" y="235" text-anchor="middle" font-size="8.5" font-weight="700" fill="#000000">Write ActiveSession (Start_Timestamp) -&gt; Stream Live Time Intelligence Metrics &amp; .ics Export</text>
     </svg>
     """
 
@@ -553,26 +553,27 @@ def add_criterion_heading(doc: Document, text: str, page_break: bool = True):
     if page_break:
         doc.add_page_break()
     p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     p.paragraph_format.space_before = Pt(2)
-    p.paragraph_format.space_after = Pt(10)
+    p.paragraph_format.space_after = Pt(8)
     p.paragraph_format.keep_with_next = True
     r = p.add_run(text)
     r.bold = True
-    r.font.size = Pt(15)
-    r.font.color.rgb = NAVY
-    add_p_bottom_border(p, color="F97316", sz="14")
+    r.font.name = "Arial"
+    r.font.size = Pt(14)
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
 
 def add_sub_heading(doc: Document, text: str):
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(10)
+    p.paragraph_format.space_before = Pt(8)
     p.paragraph_format.space_after = Pt(4)
     p.paragraph_format.keep_with_next = True
     r = p.add_run(text)
     r.bold = True
-    r.font.size = Pt(11.5)
-    r.font.color.rgb = NAVY
+    r.font.name = "Arial"
+    r.font.size = Pt(11)
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     return p
 
 
@@ -584,21 +585,23 @@ def add_dev_heading(doc: Document, text: str):
     r = p.add_run(text)
     r.bold = True
     r.underline = True
-    r.font.size = Pt(10.8)
-    r.font.color.rgb = DARK_ORANGE
+    r.font.name = "Arial"
+    r.font.size = Pt(10.5)
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     return p
 
 
-def add_body_para(doc: Document, text: str, justify: bool = True):
+def add_body_para(doc: Document, text: str, justify: bool = False):
     p = doc.add_paragraph()
     if justify:
         p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     p.paragraph_format.space_before = Pt(0)
     p.paragraph_format.space_after = Pt(6)
-    p.paragraph_format.line_spacing = 1.18
+    p.paragraph_format.line_spacing = 1.15
     r = p.add_run(text)
+    r.font.name = "Arial"
     r.font.size = Pt(10)
-    r.font.color.rgb = BODY
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     return p
 
 
@@ -608,9 +611,9 @@ def add_word_badge(doc: Document, words: int, label: str = "Words"):
     p.paragraph_format.space_before = Pt(2)
     p.paragraph_format.space_after = Pt(8)
     r = p.add_run(f"{label}: {words}")
-    r.bold = True
-    r.font.size = Pt(9.2)
-    r.font.color.rgb = SLATE
+    r.font.name = "Arial"
+    r.font.size = Pt(9.5)
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
 
 def add_code_box(doc: Document, code_text: str):
@@ -618,18 +621,9 @@ def add_code_box(doc: Document, code_text: str):
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     cell = tbl.cell(0, 0)
     cell.width = Inches(6.75)
-    set_cell_shading(cell, "F8FAFC")
-    set_cell_margins(cell, top=90, bottom=90, left=140, right=120)
-    tcPr = cell._tc.get_or_add_tcPr()
-    borders = parse_xml(
-        f'<w:tcBorders {nsdecls("w")}>'
-        f'  <w:top w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>'
-        f'  <w:left w:val="single" w:sz="24" w:space="0" w:color="F97316"/>'
-        f'  <w:bottom w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>'
-        f'  <w:right w:val="single" w:sz="4" w:space="0" w:color="CBD5E1"/>'
-        f'</w:tcBorders>'
-    )
-    tcPr.append(borders)
+    set_cell_shading(cell, "FAFAFA")
+    set_cell_margins(cell, top=80, bottom=80, left=120, right=120)
+    set_table_borders(tbl, color="D9D9D9", sz="4")
     prevent_row_split(tbl.rows[0])
 
     p = cell.paragraphs[0]
@@ -637,9 +631,9 @@ def add_code_box(doc: Document, code_text: str):
     p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.line_spacing = 1.08
     r = p.add_run(code_text)
-    r.font.name = "Consolas"
-    r.font.size = Pt(8.2)
-    r.font.color.rgb = NAVY
+    r.font.name = "Courier New"
+    r.font.size = Pt(8.5)
+    r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     sp = doc.add_paragraph()
     sp.paragraph_format.space_before = Pt(0)
@@ -656,35 +650,22 @@ def add_figure(doc: Document, image_path: str, caption: str, max_width_in: float
         height_in = max_height_in
         width_in = height_in / aspect
 
-    tbl = doc.add_table(rows=1, cols=1)
-    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    cell = tbl.cell(0, 0)
-    cell.width = Inches(6.75)
-    set_cell_shading(cell, "FFFFFF")
-    set_cell_margins(cell, top=100, bottom=90, left=100, right=100)
-    set_table_borders(tbl, color="CBD5E1", sz="6")
-    prevent_row_split(tbl.rows[0])
-
-    p_img = cell.paragraphs[0]
+    p_img = doc.add_paragraph()
     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_img.paragraph_format.space_before = Pt(0)
-    p_img.paragraph_format.space_after = Pt(5)
+    p_img.paragraph_format.space_before = Pt(6)
+    p_img.paragraph_format.space_after = Pt(3)
     p_img.paragraph_format.keep_with_next = True
     run_img = p_img.add_run()
     run_img.add_picture(image_path, width=Inches(width_in))
 
-    p_cap = cell.add_paragraph()
+    p_cap = doc.add_paragraph()
     p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_cap.paragraph_format.space_before = Pt(2)
-    p_cap.paragraph_format.space_after = Pt(0)
+    p_cap.paragraph_format.space_before = Pt(0)
+    p_cap.paragraph_format.space_after = Pt(10)
     r_cap = p_cap.add_run(caption)
-    r_cap.bold = True
+    r_cap.font.name = "Arial"
     r_cap.font.size = Pt(8.8)
-    r_cap.font.color.rgb = MUTED
-
-    sp = doc.add_paragraph()
-    sp.paragraph_format.space_before = Pt(0)
-    sp.paragraph_format.space_after = Pt(6)
+    r_cap.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
 
 def build_docx(paths: dict, output_path: str):
@@ -700,11 +681,11 @@ def build_docx(paths: dict, output_path: str):
     section.right_margin = Mm(18)
     section.different_first_page_header_footer = True
 
-    # Base Normal font
+    # Base Normal font (Arial 10pt pure black, matching IB CS IA exemplars)
     normal_style = doc.styles["Normal"]
-    normal_style.font.name = "Calibri"
+    normal_style.font.name = "Arial"
     normal_style.font.size = Pt(10)
-    normal_style.font.color.rgb = BODY
+    normal_style.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     # Running Header (Pages 2+)
     hdr = section.header
@@ -1029,85 +1010,44 @@ def build_docx(paths: dict, output_path: str):
     total_words = crit_a_words + crit_c_words + crit_d_words + crit_e_words
 
     # =========================================================================
-    # COVER PAGE
+    # COVER PAGE (matching IB CS IA exemplars: clean centered Arial black text)
     # =========================================================================
-    for _ in range(5):
+    for _ in range(7):
         sp = doc.add_paragraph()
         sp.paragraph_format.space_after = Pt(10)
 
     p_kicker = doc.add_paragraph()
     p_kicker.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_kicker.paragraph_format.space_after = Pt(2)
+    p_kicker.paragraph_format.space_after = Pt(4)
     rk = p_kicker.add_run("Computer Science")
-    rk.bold = True
-    rk.font.size = Pt(16)
-    rk.font.color.rgb = SLATE
+    rk.font.name = "Arial"
+    rk.font.size = Pt(22)
+    rk.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     p_subk = doc.add_paragraph()
     p_subk.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_subk.paragraph_format.space_after = Pt(28)
+    p_subk.paragraph_format.space_after = Pt(36)
     rs = p_subk.add_run("Internal Assessment")
-    rs.font.size = Pt(13.5)
-    rs.font.color.rgb = MUTED
+    rs.font.name = "Arial"
+    rs.font.size = Pt(22)
+    rs.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     p_title = doc.add_paragraph()
     p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_title.paragraph_format.space_after = Pt(10)
+    p_title.paragraph_format.space_after = Pt(36)
     rt = p_title.add_run("SYNTRIQ: Smart Study Planner &\nTime Intelligence System")
     rt.bold = True
-    rt.font.size = Pt(24)
-    rt.font.color.rgb = NAVY
-
-    p_sub = doc.add_paragraph()
-    p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_sub.paragraph_format.space_after = Pt(28)
-    rsub = p_sub.add_run(
-        "Algorithmic Task Prioritization, Multi-User Firebase UID Isolation &\nDrift-Free Academic Focus Analytics"
-    )
-    rsub.font.size = Pt(12)
-    rsub.font.color.rgb = ORANGE
-
-    # Centered metadata pill table
-    meta_tbl = doc.add_table(rows=4, cols=2)
-    meta_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(meta_tbl, color="CBD5E1", sz="6")
-    meta_rows = [
-        ("Developer / Author", "Arjun Kahar"),
-        ("Project Stack", "Python Flask, Firebase Auth (Google OAuth), Cloud Firestore, SQLite, JS"),
-        ("Live Production URL", "https://study-nine-flame.vercel.app/"),
-        ("Total IB IA Word Count", f"{total_words} words (Criterion A–E Prose; IB Maximum: 2,000 words)"),
-    ]
-    for i, (k, v) in enumerate(meta_rows):
-        row = meta_tbl.rows[i]
-        prevent_row_split(row)
-        c0, c1 = row.cells[0], row.cells[1]
-        c0.width = Inches(2.0)
-        c1.width = Inches(4.4)
-        set_cell_shading(c0, "FFF7ED" if i == 3 else "F8FAFC")
-        set_cell_shading(c1, "FFFFFF")
-        set_cell_margins(c0, top=80, bottom=80, left=120, right=120)
-        set_cell_margins(c1, top=80, bottom=80, left=120, right=120)
-        r0 = c0.paragraphs[0].add_run(k)
-        r0.bold = True
-        r0.font.size = Pt(9.5)
-        r0.font.color.rgb = DARK_ORANGE if i == 3 else NAVY
-        r1 = c1.paragraphs[0].add_run(v)
-        r1.bold = (i == 3)
-        r1.font.size = Pt(9.5)
-        r1.font.color.rgb = BODY
+    rt.font.name = "Arial"
+    rt.font.size = Pt(26)
+    rt.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     p_wc = doc.add_paragraph()
     p_wc.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_wc.paragraph_format.space_before = Pt(28)
-    rwc = p_wc.add_run(
-        f"Prose Word Breakdown:  Criterion A: {crit_a_words}  •  "
-        f"Criterion C Overview: {crit_c_words}  •  "
-        f"Criterion D: {crit_d_words}  •  "
-        f"Criterion E: {crit_e_words}  •  "
-        f"Total: {total_words} words"
-    )
-    rwc.font.size = Pt(9)
-    rwc.font.color.rgb = MUTED
+    p_wc.paragraph_format.space_before = Pt(12)
+    rwc = p_wc.add_run(f"Word Count: {total_words}")
+    rwc.font.name = "Arial"
+    rwc.font.size = Pt(16)
+    rwc.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     # =========================================================================
     # CRITERION A
@@ -1136,18 +1076,19 @@ def build_docx(paths: dict, output_path: str):
     ]
     tt_tbl = doc.add_table(rows=1 + len(tech_rows), cols=3)
     tt_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(tt_tbl, color="94A3B8", sz="4")
+    set_table_borders(tt_tbl, color="BFBFBF", sz="4")
     tt_widths = [Inches(1.45), Inches(2.65), Inches(2.65)]
     prevent_row_split(tt_tbl.rows[0])
     for j, th in enumerate(["Technology / Language", "Advantages (Why Chosen)", "Disadvantages & Trade-Offs"]):
         c = tt_tbl.cell(0, j)
         c.width = tt_widths[j]
-        set_cell_shading(c, "F1F5F9")
-        set_cell_margins(c, top=65, bottom=65, left=80, right=80)
+        set_cell_shading(c, "EDEDED")
+        set_cell_margins(c, top=60, bottom=60, left=80, right=80)
         r = c.paragraphs[0].add_run(th)
         r.bold = True
+        r.font.name = "Arial"
         r.font.size = Pt(8.5)
-        r.font.color.rgb = NAVY
+        r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     for i, tr in enumerate(tech_rows, 1):
         row = tt_tbl.rows[i]
         prevent_row_split(row)
@@ -1157,8 +1098,9 @@ def build_docx(paths: dict, output_path: str):
             set_cell_margins(c, top=55, bottom=55, left=80, right=80)
             rc = c.paragraphs[0].add_run(val)
             rc.bold = (j == 0)
+            rc.font.name = "Arial"
             rc.font.size = Pt(8.2)
-            rc.font.color.rgb = BODY
+            rc.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     add_sub_heading(doc, "Success Criteria")
     p_intro = doc.add_paragraph("My application will:")
@@ -1249,33 +1191,27 @@ def build_docx(paths: dict, output_path: str):
         ),
     ]
 
-    dtbl = doc.add_table(rows=3, cols=2)
-    dtbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(dtbl, color="CBD5E1", sz="6")
     for idx, (card_title, bullets) in enumerate(decomp_cards):
-        r_idx, c_idx = divmod(idx, 2)
-        if c_idx == 0:
-            prevent_row_split(dtbl.rows[r_idx])
-        cell = dtbl.cell(r_idx, c_idx)
-        cell.width = Inches(3.35)
-        set_cell_shading(cell, "F8FAFC")
-        set_cell_margins(cell, top=80, bottom=80, left=110, right=110)
-        p0 = cell.paragraphs[0]
-        p0.paragraph_format.space_after = Pt(4)
-        rh = p0.add_run(card_title)
-        rh.bold = True
-        rh.font.size = Pt(9.6)
-        rh.font.color.rgb = NAVY
-        add_p_bottom_border(p0, color="E2E8F0", sz="6")
+        pt_cat = doc.add_paragraph()
+        pt_cat.paragraph_format.space_before = Pt(5)
+        pt_cat.paragraph_format.space_after = Pt(2)
+        pt_cat.paragraph_format.keep_with_next = True
+        rt_cat = pt_cat.add_run(card_title)
+        rt_cat.bold = True
+        rt_cat.font.name = "Arial"
+        rt_cat.font.size = Pt(10)
+        rt_cat.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
         for b in bullets:
-            pb = cell.add_paragraph()
-            pb.paragraph_format.left_indent = Inches(0.14)
-            pb.paragraph_format.first_line_indent = Inches(-0.14)
+            pb = doc.add_paragraph()
+            pb.paragraph_format.left_indent = Inches(0.28)
+            pb.paragraph_format.first_line_indent = Inches(-0.15)
+            pb.paragraph_format.space_before = Pt(0)
             pb.paragraph_format.space_after = Pt(2)
             pb.paragraph_format.line_spacing = 1.12
             rb = pb.add_run(f"• {b}")
-            rb.font.size = Pt(8.6)
-            rb.font.color.rgb = BODY
+            rb.font.name = "Arial"
+            rb.font.size = Pt(9.5)
+            rb.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     add_sub_heading(doc, "Planning the Computational Thinking Process")
     plan_rows = [
@@ -1295,39 +1231,42 @@ def build_docx(paths: dict, output_path: str):
 
     ptbl = doc.add_table(rows=1 + len(plan_rows), cols=5)
     ptbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(ptbl, color="94A3B8", sz="4")
+    set_table_borders(ptbl, color="BFBFBF", sz="4")
     p_widths = [Inches(1.65), Inches(0.65), Inches(1.25), Inches(1.15), Inches(2.05)]
     p_headers = ["Task", "Duration", "Dependencies", "Concurrencies", "CT Subtasks (Plan / Design / Develop / Test / Evaluate)"]
     prevent_row_split(ptbl.rows[0])
     for j, htxt in enumerate(p_headers):
         cell = ptbl.cell(0, j)
         cell.width = p_widths[j]
-        set_cell_shading(cell, "F1F5F9")
-        set_cell_margins(cell, top=70, bottom=70, left=80, right=80)
+        set_cell_shading(cell, "EDEDED")
+        set_cell_margins(cell, top=65, bottom=65, left=80, right=80)
         r = cell.paragraphs[0].add_run(htxt)
         r.bold = True
+        r.font.name = "Arial"
         r.font.size = Pt(8.5)
-        r.font.color.rgb = NAVY
+        r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     for i, item in enumerate(plan_rows, 1):
         row = ptbl.rows[i]
         prevent_row_split(row)
         if item[0] == "PHASE":
             merged = row.cells[0].merge(row.cells[4])
-            set_cell_shading(merged, "FFF7ED")
-            set_cell_margins(merged, top=60, bottom=60, left=80, right=80)
+            set_cell_shading(merged, "F5F5F5")
+            set_cell_margins(merged, top=55, bottom=55, left=80, right=80)
             rp = merged.paragraphs[0].add_run(item[1])
             rp.bold = True
+            rp.font.name = "Arial"
             rp.font.size = Pt(8.6)
-            rp.font.color.rgb = RGBColor(0x9A, 0x34, 0x12)
+            rp.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
         else:
             for j in range(5):
                 cell = row.cells[j]
                 cell.width = p_widths[j]
-                set_cell_margins(cell, top=65, bottom=65, left=80, right=80)
+                set_cell_margins(cell, top=60, bottom=60, left=80, right=80)
                 rc = cell.paragraphs[0].add_run(item[j + 1])
+                rc.font.name = "Arial"
                 rc.font.size = Pt(8.3)
-                rc.font.color.rgb = BODY
+                rc.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     # =========================================================================
     # CRITERION C
@@ -1376,12 +1315,12 @@ def build_docx(paths: dict, output_path: str):
     add_sub_heading(doc, "Algorithms as Components in a System Model")
     algo_tbl = doc.add_table(rows=1, cols=2)
     algo_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(algo_tbl, color="CBD5E1", sz="6")
+    set_table_borders(algo_tbl, color="BFBFBF", sz="4")
     prevent_row_split(algo_tbl.rows[0])
     ac0, ac1 = algo_tbl.cell(0, 0), algo_tbl.cell(0, 1)
     ac0.width, ac1.width = Inches(3.38), Inches(3.38)
-    set_cell_shading(ac0, "F8FAFC")
-    set_cell_shading(ac1, "F8FAFC")
+    set_cell_shading(ac0, "FAFAFA")
+    set_cell_shading(ac1, "FAFAFA")
     set_cell_margins(ac0, top=80, bottom=80, left=100, right=100)
     set_cell_margins(ac1, top=80, bottom=80, left=100, right=100)
 
@@ -1426,13 +1365,13 @@ def build_docx(paths: dict, output_path: str):
         "  save_active(uid, task_id, now(), accum=0)"
     )
     r_sql = ac0.paragraphs[0].add_run(sql_text)
-    r_sql.font.name = "Consolas"
-    r_sql.font.size = Pt(7.9)
-    r_sql.font.color.rgb = NAVY
+    r_sql.font.name = "Courier New"
+    r_sql.font.size = Pt(8.0)
+    r_sql.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     r_pse = ac1.paragraphs[0].add_run(pseudo_text)
-    r_pse.font.name = "Consolas"
-    r_pse.font.size = Pt(7.9)
-    r_pse.font.color.rgb = NAVY
+    r_pse.font.name = "Courier New"
+    r_pse.font.size = Pt(8.0)
+    r_pse.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     add_sub_heading(doc, "Testing Strategies")
     test_rows = [
@@ -1449,18 +1388,19 @@ def build_docx(paths: dict, output_path: str):
     ]
     ttbl = doc.add_table(rows=1 + len(test_rows), cols=3)
     ttbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-    set_table_borders(ttbl, color="94A3B8", sz="4")
+    set_table_borders(ttbl, color="BFBFBF", sz="4")
     t_widths = [Inches(1.65), Inches(2.55), Inches(2.55)]
     prevent_row_split(ttbl.rows[0])
     for j, th in enumerate(["Success Criterion", "Testing Strategy", "Expected Result"]):
         c = ttbl.cell(0, j)
         c.width = t_widths[j]
-        set_cell_shading(c, "F1F5F9")
-        set_cell_margins(c, top=70, bottom=70, left=80, right=80)
+        set_cell_shading(c, "EDEDED")
+        set_cell_margins(c, top=65, bottom=65, left=80, right=80)
         r = c.paragraphs[0].add_run(th)
         r.bold = True
+        r.font.name = "Arial"
         r.font.size = Pt(8.5)
-        r.font.color.rgb = NAVY
+        r.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
     for i, tr in enumerate(test_rows, 1):
         row = ttbl.rows[i]
         prevent_row_split(row)
@@ -1470,8 +1410,9 @@ def build_docx(paths: dict, output_path: str):
             set_cell_margins(c, top=60, bottom=60, left=80, right=80)
             rc = c.paragraphs[0].add_run(val)
             rc.bold = (j == 0)
+            rc.font.name = "Arial"
             rc.font.size = Pt(8.3)
-            rc.font.color.rgb = BODY
+            rc.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     # =========================================================================
     # CRITERION D
@@ -1489,30 +1430,37 @@ def build_docx(paths: dict, output_path: str):
     add_criterion_heading(doc, "Criterion E - Evaluation", page_break=True)
     add_sub_heading(doc, "Meeting Success Criteria")
     for title, desc in crit_e_criteria:
-        pe = doc.add_paragraph()
-        pe.paragraph_format.space_before = Pt(1)
-        pe.paragraph_format.space_after = Pt(3.5)
-        pe.paragraph_format.line_spacing = 1.14
-        pe.paragraph_format.keep_with_next = False
-        rt = pe.add_run(f"{title}: ")
+        pe_t = doc.add_paragraph()
+        pe_t.paragraph_format.space_before = Pt(3)
+        pe_t.paragraph_format.space_after = Pt(1)
+        pe_t.paragraph_format.keep_with_next = True
+        rt = pe_t.add_run(title)
         rt.bold = True
-        rt.font.size = Pt(9.5)
-        rt.font.color.rgb = NAVY
-        rd = pe.add_run(desc)
-        rd.font.size = Pt(9.4)
-        rd.font.color.rgb = BODY
+        rt.font.name = "Arial"
+        rt.font.size = Pt(10)
+        rt.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+
+        pe_d = doc.add_paragraph()
+        pe_d.paragraph_format.space_before = Pt(0)
+        pe_d.paragraph_format.space_after = Pt(4)
+        pe_d.paragraph_format.line_spacing = 1.15
+        rd = pe_d.add_run(desc)
+        rd.font.name = "Arial"
+        rd.font.size = Pt(10)
+        rd.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     p_verif = doc.add_paragraph()
-    p_verif.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_verif.alignment = WD_ALIGN_PARAGRAPH.LEFT
     p_verif.paragraph_format.space_before = Pt(4)
     p_verif.paragraph_format.space_after = Pt(6)
     p_verif.paragraph_format.line_spacing = 1.15
     rv_lead = p_verif.add_run(
         "All 52 automated checks across run_tests.py (14), scripts/test_syntriq3.py (20), "
-        "scripts/test_time_intelligence.py (11), and scripts/test_multi_user_auth.py (7) pass after the final edits. "
+        "scripts/test_time_intelligence.py (11), and scripts/test_multi_user_auth.py (7) passed after final edits."
     )
-    rv_lead.font.size = Pt(9.5)
-    rv_lead.font.color.rgb = BODY
+    rv_lead.font.name = "Arial"
+    rv_lead.font.size = Pt(10)
+    rv_lead.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     add_sub_heading(doc, "Suggesting improvements")
     add_body_para(doc, crit_e_tech_eval)
@@ -1521,10 +1469,10 @@ def build_docx(paths: dict, output_path: str):
 
     p_fin = doc.add_paragraph()
     p_fin.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    rf = p_fin.add_run(f"Total IB CS IA Prose Word Count: {total_words} / 2,000 words")
-    rf.bold = True
+    rf = p_fin.add_run(f"Word Count: {total_words}")
+    rf.font.name = "Arial"
     rf.font.size = Pt(10)
-    rf.font.color.rgb = DARK_ORANGE
+    rf.font.color.rgb = RGBColor(0x00, 0x00, 0x00)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     doc.save(output_path)
