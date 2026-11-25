@@ -41,16 +41,22 @@ def _base_docs_url(project_id: Optional[str] = None) -> str:
     pid = project_id or _project_id()
     if not pid:
         raise ValueError("FIREBASE_PROJECT_ID is not configured.")
-    return f"{FIRESTORE_API_BASE}/projects/{pid}/databases/(default)/documents"
+    db_id = os.environ.get("FIRESTORE_DATABASE_ID", "(default)").strip() or "(default)"
+    return f"{FIRESTORE_API_BASE}/projects/{pid}/databases/{db_id}/documents"
 
 
 def _headers(id_token: str) -> Dict[str, str]:
     if not id_token:
         raise FirestorePermissionError("Missing Firebase ID token for Firestore access.")
-    return {
+    import firebase_auth
+    api_key = firebase_auth.get_firebase_web_config().get("apiKey", "")
+    hdrs = {
         "Authorization": f"Bearer {id_token}",
         "Content-Type": "application/json",
     }
+    if api_key:
+        hdrs["x-goog-api-key"] = api_key
+    return hdrs
 
 
 def _encode_value(val: Any) -> Dict[str, Any]:
@@ -106,7 +112,15 @@ def _decode_doc(doc: Dict[str, Any]) -> Dict[str, Any]:
 
 def _handle_response(resp: requests.Response) -> Dict[str, Any]:
     if resp.status_code in (401, 403):
-        raise FirestorePermissionError(f"Firestore access denied ({resp.status_code}): {resp.text}")
+        body = resp.text or ""
+        if "Permission denied on the service" in body or "SERVICE_DISABLED" in body or "has not been used in project" in body:
+            pid = _project_id() or "study-planner-b8fe1"
+            raise FirestorePermissionError(
+                f"Cloud Firestore is not enabled yet on Firebase project '{pid}'. "
+                f"Open Firebase Console -> Build -> Firestore Database -> Create database (Production mode), "
+                f"then paste firestore.rules into the Rules tab and click Publish."
+            )
+        raise FirestorePermissionError(f"Firestore access denied ({resp.status_code}): {body}")
     if resp.status_code == 404:
         return {}
     if not resp.ok:
