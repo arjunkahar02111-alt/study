@@ -16,7 +16,8 @@ service cloud.firestore {
     }
 
     function ownerUnchanged() {
-      return !('ownerUid' in resource.data)
+      return resource == null
+        || !('ownerUid' in resource.data)
         || request.resource.data.ownerUid == resource.data.ownerUid;
     }
 
@@ -39,7 +40,8 @@ service cloud.firestore {
       // User Settings & Preferences
       match /settings/{docId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -88,7 +90,8 @@ service cloud.firestore {
       // Subjects, Study Sessions, Active Timer Session, Goals, Progress, Analytics
       match /subjects/{subjectId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -96,7 +99,8 @@ service cloud.firestore {
 
       match /study_sessions/{sessionId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -104,7 +108,8 @@ service cloud.firestore {
 
       match /active_session/{docId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -112,7 +117,8 @@ service cloud.firestore {
 
       match /goals/{goalId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -120,7 +126,8 @@ service cloud.firestore {
 
       match /progress/{docId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
@@ -128,7 +135,8 @@ service cloud.firestore {
 
       match /analytics/{docId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create: if isOwner(uid) && hasValidOwnerField(uid);
+        allow update: if isOwner(uid)
           && hasValidOwnerField(uid)
           && ownerUnchanged();
         allow delete: if isOwner(uid);
