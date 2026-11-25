@@ -28,6 +28,10 @@ class TestMultiUserAuthIsolation(unittest.TestCase):
         self.temp_file.close()
         db.init_db(self.db_path)
 
+        # Force local UID-isolated SQLite store in offline unit/integration tests even when .env exists
+        self._fb_patcher = patch.object(firebase_auth, "is_firebase_configured", return_value=False)
+        self._fb_patcher.start()
+
         app.config["TESTING"] = True
         app.config["DB_FILE"] = self.db_path
         self._orig_db_path = db.DEFAULT_DB_PATH
@@ -51,6 +55,7 @@ class TestMultiUserAuthIsolation(unittest.TestCase):
         }
 
     def tearDown(self):
+        self._fb_patcher.stop()
         gc.collect()
         db.DEFAULT_DB_PATH = self._orig_db_path
         if os.path.exists(self.db_path):

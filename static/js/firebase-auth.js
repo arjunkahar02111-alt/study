@@ -6,6 +6,7 @@
  */
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAnalytics, isSupported as isAnalyticsSupported } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js";
 import {
     getAuth,
     GoogleAuthProvider,
@@ -253,6 +254,13 @@ function initFirebase() {
     }
 
     state.app = getApps().length ? getApps()[0] : initializeApp(cfg.firebaseConfig);
+    if (cfg.firebaseConfig.measurementId) {
+        isAnalyticsSupported()
+            .then((supported) => {
+                if (supported) getAnalytics(state.app);
+            })
+            .catch(() => {});
+    }
     state.auth = getAuth(state.app);
     setPersistence(state.auth, browserLocalPersistence).catch(() => {});
 
