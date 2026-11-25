@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Personal Study Routines{% endblock %}
+
+{% block content %}
+<div class="routines-page">
+    <div class="page-header">
+        <div class="header-intro">
+            <div class="badge-intel-pill">
+                <span class="live-pulse-dot"></span>
+                PERSONAL WEEKLY SCHEDULE
+            </div>
+            <h1 class="page-title">Study Routines</h1>
+            <p class="page-subtitle">Your private daily and weekly study schedule, synced exclusively to your Google account.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('study_plan') }}" class="btn btn-outline">Study Plan</a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a>
+        </div>
+    </div>
+
+    <div class="routines-layout-grid">
+        <!-- Add Routine Block Card -->
+        <div class="card form-card">
+            <div class="card-header">
+                <h2 class="card-title">Add Routine Block</h2>
+                <span class="card-subtitle">Create a recurring focus slot</span>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_routine_route') }}" method="POST">
+                    <div class="form-group">
+                        <label for="routineTitle" class="form-label">Routine Title <span class="text-danger">*</span></label>
+                        <input type="text" id="routineTitle" name="title" class="form-control" placeholder="e.g. Morning Calculus Practice" required>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="routineSubject" class="form-label">Subject</label>
+                            <input type="text" id="routineSubject" name="subject" class="form-control" placeholder="e.g. Mathematics">
+                        </div>
+                        <div class="form-group">
+                            <label for="routineDay" class="form-label">Day <span class="text-danger">*</span></label>
+                            <select id="routineDay" name="day_of_week" class="form-control" required>
+                                <option value="Daily">Daily (Every Day)</option>
+                                <option value="Monday" selected>Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="startTime" class="form-label">Start Time</label>
+                            <input type="time" id="startTime" name="start_time" class="form-control" value="17:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endTime" class="form-label">End Time</label>
+                            <input type="time" id="endTime" name="end_time" class="form-control" value="18:30" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="focusGoal" class="form-label">Focus Goal (Optional)</label>
+                        <input type="text" id="focusGoal" name="focus_goal" class="form-control" placeholder="e.g. Complete 2 past-paper sections without distractions">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        + Save to My Routine
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Routine Schedule Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">Your Personal Routine ({{ all_routines_count }})</h2>
+                    <span class="card-subtitle">Isolated to UID: <code>{{ current_user.uid[:10] }}...</code></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Day Filter Pills -->
+                <div class="tabs-list routine-day-tabs" style="margin-bottom: 18px; flex-wrap: wrap;">
+                    {% for day in ['All', 'Daily', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                    <a href="{{ url_for('routines_page', day=day) }}" class="tab-item {% if selected_day == day %}active{% endif %}">{{ day }}</a>
+                    {% endfor %}
+                </div>
+
+                {% if routines %}
+                <div class="routine-list">
+                    {% for r in routines %}
+                    <div class="routine-item {% if not r.isActive %}routine-paused{% endif %}">
+                        <div class="routine-main">
+                            <div class="routine-meta">
+                                <span class="badge {% if r.isActive %}badge-urgent{% else %}badge-neutral{% endif %}">{{ r.dayOfWeek }}</span>
+                                <span class="subject-tag">{{ r.subject }}</span>
+                                <span class="routine-time font-mono">⏱ {{ r.startTime }} – {{ r.endTime }}</span>
+                            </div>
+                            <h3 class="routine-title">{{ r.title }}</h3>
+                            {% if r.focusGoal %}
+                            <p class="routine-goal">{{ r.focusGoal }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="routine-actions">
+                            <form action="{{ url_for('toggle_routine_route', routine_id=r.Routine_ID) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline">
+                                    {% if r.isActive %}Pause{% else %}Activate{% endif %}
+                                </button>
+                            </form>
+                            <form action="{{ url_for('delete_routine_route', routine_id=r.Routine_ID) }}" method="POST" style="display:inline;" onsubmit="return confirm('Remove this routine block?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state empty-state-compact">
+                    <h3>No routine blocks yet</h3>
+                    <p>Add your daily or weekly study slots on the left to build your personalized study routine.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

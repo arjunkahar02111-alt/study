@@ -153,6 +153,21 @@
     </div>
 
     <!-- Critical Attention Section (Overdue & Imminent Upcoming) -->
+    {% if legacy_migration and legacy_migration.available %}
+    <div id="legacyMigrationBanner" class="alert-banner" style="background: var(--info-light); border: 1px solid #bfdbfe; color: #1e3a8a; margin-bottom: 16px;">
+        <div class="alert-banner-content">
+            <span class="banner-icon">📦</span>
+            <div>
+                <strong>Local Study Data Detected:</strong> Found <strong>{{ legacy_migration.legacy_count }}</strong> task(s) created before login protection. Import them into your private workspace or start fresh?
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="importLegacyData(this);">Import to My Workspace</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="dismissLegacyMigration();">Start Fresh</button>
+        </div>
+    </div>
+    {% endif %}
+
     {% if overdue_tasks and filter_type != 'overdue' %}
     <div class="alert-banner alert-banner-danger">
         <div class="alert-banner-content">
@@ -279,10 +294,10 @@
                             <td data-label="Actions" class="actions-cell-mobile" style="text-align: right;">
                                 <div class="actions-group">
                                     {% if task.Task_Status == 'Pending' %}
-                                    <button type="button" class="btn-action btn-track-time {% if active_session and active_session.task_id == task.Task_ID %}active-tracking{% endif %}" onclick="toggleTimeTracking({{ task.Task_ID }});" title="{% if active_session and active_session.task_id == task.Task_ID %}Session Active - View / Manage{% else %}Track Study Time for this task{% endif %}">
+                                    <button type="button" class="btn-action btn-track-time track-btn-{{ task.Task_ID }} {% if active_session and active_session.task_id == task.Task_ID %}active-tracking{% endif %}" onclick='toggleTimeTracking({{ task.Task_ID|tojson }});' title="{% if active_session and active_session.task_id == task.Task_ID %}Session Active - View / Manage{% else %}Track Study Time for this task{% endif %}">
                                         ⏱
                                     </button>
-                                    <button type="button" class="btn-action btn-pomo" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session for this task">
+                                    <button type="button" class="btn-action btn-pomo" onclick='openPomodoroForTask({{ task.Task_Title|tojson }}, {{ task.Task_Subject|tojson }}, {{ task.Task_ID|tojson }});' title="Start Focus Session for this task">
                                         ⚡
                                     </button>
                                     <form action="{{ url_for('complete_task', task_id=task.Task_ID) }}" method="POST" style="display:inline;" onsubmit="triggerConfetti();">

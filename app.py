@@ -1,33 +1,51 @@
 """
-Smart Study Planner - Flask Web Application
-Implements Criterion A (Problem Specification) and Criterion B (Design).
+Smart Study Planner (SYNTRIQ) - Flask Web Application
+Implements Multi-User Firebase Authentication, Google Sign-In,
+Cloud Firestore UID Data Isolation, Priority Scheduling & Real-Time Time Intelligence.
 """
 
 import os
-from datetime import date, datetime, timedelta, timezone
 import random
+from datetime import date, datetime, timedelta, timezone
+from functools import wraps
+
+from dotenv import load_dotenv
 from flask import (
     Flask,
+    Response,
+    flash,
+    g,
+    jsonify,
+    redirect,
     render_template,
     request,
-    redirect,
+    send_from_directory,
+    session,
     url_for,
-    flash,
-    jsonify,
-    Response,
-    send_from_directory
 )
 
 import database
+import firebase_auth
+import firestore_store
+import store
 from priority_calculator import calculate_priority, is_overdue, parse_date
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "smart-study-planner-secret-key-2026")
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.environ.get("VERCEL")),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+)
 
-# Database path
+# Database path (SQLite used for local/offline mode and legacy migration checks)
 if os.environ.get("VERCEL"):
     import shutil
     import tempfile
+
     DB_FILE = os.path.join(tempfile.gettempdir(), "study_planner.db")
     orig_db = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
     if not os.path.exists(DB_FILE) and os.path.exists(orig_db):
@@ -38,9 +56,11 @@ if os.environ.get("VERCEL"):
 else:
     DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "study_planner.db")
 
+
 def get_db():
-    """Returns the active database file path, allowing dynamic testing overrides."""
+    """Returns the active SQLite database file path, allowing dynamic testing overrides."""
     return app.config.get("DB_FILE", DB_FILE)
+
 
 MOTIVATIONAL_QUOTES = [
     {"quote": "It always seems impossible until it's done.", "author": "Nelson Mandela"},
@@ -49,52 +69,222 @@ MOTIVATIONAL_QUOTES = [
     {"quote": "The expert in anything was once a beginner.", "author": "Helen Hayes"},
     {"quote": "Don't watch the clock; do what it does. Keep going.", "author": "Sam Levenson"},
     {"quote": "Nothing in life is to be feared, it is only to be understood.", "author": "Marie Curie"},
-    {"quote": "You don't have to be great to start, but you have to start to be great.", "author": "Zig Ziglar"}
+    {"quote": "You don't have to be great to start, but you have to start to be great.", "author": "Zig Ziglar"},
 ]
 
 
 def setup_application():
-    """Initializes the database without forcing seed tasks."""
-    database.init_db(DB_FILE)
+    """Initializes local SQLite schema without forcing seed tasks."""
+    try:
+        database.init_db(DB_FILE)
+    except Exception:
+        # Gracefully defer if default DB_FILE is on a read-only filesystem or overridden by tests
+        pass
 
 
-# Ensure DB exists on startup
 setup_application()
 
 
+def get_current_user():
+    """Returns the authenticated user dictionary from Flask session if valid, else None."""
+    user = session.get("user")
+    if not user or not isinstance(user, dict) or not user.get("uid"):
+        return None
+    return user
+
+
+def login_required(f):
+    """Protects routes and APIs, rejecting unauthenticated access cleanly."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Authentication required", "auth_required": True}), 401
+            next_url = request.full_path.rstrip("?")
+            return redirect(url_for("login_page", next=next_url))
+        g.user = user
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+@app.errorhandler(firestore_store.FirestorePermissionError)
+def handle_firestore_permission_error(err):
+    """Handles expired tokens or unauthorized Firestore access cleanly."""
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Permission denied or session expired", "auth_required": True}), 403
+    session.pop("user", None)
+    flash("Your session expired or access was denied. Please sign in again.", "warning")
+    return redirect(url_for("login_page"))
+
+
 @app.context_processor
-def inject_today():
-    """Injects current date and active tracking session into all Jinja templates."""
+def inject_globals():
+    """Injects current date, authenticated user, Firebase web config, and active session into Jinja templates."""
     today = date.today()
-    try:
-        active_session = database.get_active_session(get_db())
-    except Exception:
-        active_session = None
+    user = get_current_user()
+    active_session = None
+    user_settings = {"maxSafeHours": 6.0, "defaultFocusMinutes": 25, "soundEffectsEnabled": True}
+    if user:
+        try:
+            active_session = store.get_active_session(user, get_db())
+        except Exception:
+            active_session = None
+        try:
+            user_settings = store.get_user_settings(user, get_db())
+        except Exception:
+            pass
     return {
         "current_date": today,
-        "active_session": active_session
+        "active_session": active_session,
+        "current_user": user,
+        "user_settings": user_settings,
+        "firebase_config": firebase_auth.get_firebase_web_config(),
+        "firebase_enabled": firebase_auth.is_firebase_configured(),
     }
 
 
+# =============================================================================
+# Authentication & Session Management Routes
+# =============================================================================
+
+@app.route("/login")
+def login_page():
+    """Renders the SYNTRIQ Google Sign-In authentication screen."""
+    if get_current_user():
+        return redirect(url_for("dashboard"))
+    next_url = request.args.get("next", "/dashboard")
+    if not next_url.startswith("/"):
+        next_url = "/dashboard"
+    return render_template("login.html", next_url=next_url)
+
+
+@app.route("/auth/session", methods=["POST"])
+def auth_create_session():
+    """
+    Verifies a Firebase ID token submitted after Google Sign-In,
+    initializes the user's personal workspace if first login,
+    and establishes an HttpOnly server session.
+    """
+    data = request.get_json(silent=True) or {}
+    id_token = (data.get("idToken") or "").strip()
+    if not id_token:
+        return jsonify({"error": "Missing Firebase ID token"}), 400
+
+    try:
+        claims = firebase_auth.verify_firebase_id_token(id_token)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 401
+
+    user_obj = {
+        "uid": claims["uid"],
+        "email": claims["email"],
+        "name": claims["name"],
+        "picture": claims["picture"],
+        "id_token": id_token,
+    }
+
+    try:
+        is_new_user = store.ensure_user_workspace(user_obj, get_db())
+    except firestore_store.FirestorePermissionError as exc:
+        return jsonify({"error": str(exc)}), 403
+    except Exception as exc:
+        return jsonify({"error": f"Failed to initialize workspace: {exc}"}), 500
+
+    session.clear()
+    session.permanent = True
+    session["user"] = user_obj
+
+    if is_new_user:
+        first_name = (claims["name"] or "there").split()[0]
+        flash(f"Welcome to SYNTRIQ, {first_name}! Your private study workspace is ready.", "success")
+
+    return jsonify({
+        "success": True,
+        "is_new_user": is_new_user,
+        "user": {
+            "uid": claims["uid"],
+            "email": claims["email"],
+            "name": claims["name"],
+            "picture": claims["picture"],
+        },
+    })
+
+
+@app.route("/auth/refresh-token", methods=["POST"])
+def auth_refresh_token():
+    """Updates the verified Firebase ID token in the current session without interrupting UI."""
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json(silent=True) or {}
+    id_token = (data.get("idToken") or "").strip()
+    if not id_token:
+        return jsonify({"error": "Missing ID token"}), 400
+    try:
+        claims = firebase_auth.verify_firebase_id_token(id_token)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 401
+
+    if claims["uid"] != user["uid"]:
+        return jsonify({"error": "UID mismatch during token refresh"}), 403
+
+    user["id_token"] = id_token
+    user["email"] = claims["email"]
+    user["name"] = claims["name"]
+    user["picture"] = claims["picture"]
+    session["user"] = user
+    return jsonify({"success": True})
+
+
+@app.route("/auth/logout", methods=["POST"])
+def auth_logout():
+    """
+    Clears server-side session while safely preserving the user's
+    saved study routines, tasks, and active timer state under their UID.
+    """
+    session.clear()
+    if request.is_json:
+        return jsonify({"success": True})
+    flash("You have been signed out securely.", "info")
+    return redirect(url_for("login_page"))
+
+
+@app.route("/auth/me")
+@login_required
+def auth_me():
+    user = g.user
+    return jsonify({
+        "authenticated": True,
+        "uid": user["uid"],
+        "email": user.get("email", ""),
+        "name": user.get("name", ""),
+        "picture": user.get("picture", ""),
+    })
+
+
+# =============================================================================
+# Core Planner Routes (Protected & UID-Isolated)
+# =============================================================================
+
 @app.route("/")
 @app.route("/dashboard")
+@login_required
 def dashboard():
-    """
-    Dashboard (Main Page):
-    - View summary cards: Total, Pending, Completed, Overdue, Upcoming deadlines
-    - View filtered task lists based on query parameter
-    - Provides direct actions to add tasks, open study plan, complete/edit/delete tasks
-    """
+    """User-isolated Study Dashboard."""
     filter_type = request.args.get("filter", "all").lower()
-
+    user = g.user
     db_target = get_db()
-    all_tasks = database.get_all_tasks(db_target)
-    pending_tasks = database.get_pending_tasks(db_target)
-    completed_tasks = database.get_completed_tasks(db_target)
-    overdue_tasks = database.get_overdue_tasks(db_target)
-    upcoming_tasks = database.get_upcoming_tasks(days_ahead=7, db_path=db_target)
 
-    # Select tasks to show in the main table based on filter
+    all_tasks = store.get_all_tasks(user, db_target)
+    pending_tasks = [t for t in all_tasks if t["Task_Status"] == "Pending"]
+    completed_tasks = [t for t in all_tasks if t["Task_Status"] == "Completed"]
+    today_str = date.today().strftime("%Y-%m-%d")
+    max_str = (date.today() + timedelta(days=7)).strftime("%Y-%m-%d")
+    overdue_tasks = [t for t in pending_tasks if t["Task_Deadline"] < today_str]
+    upcoming_tasks = [t for t in pending_tasks if today_str <= t["Task_Deadline"] <= max_str]
+
     if filter_type == "pending":
         display_tasks = pending_tasks
         active_tab_title = "Pending Tasks"
@@ -120,9 +310,12 @@ def dashboard():
         "upcoming": len(upcoming_tasks),
     }
 
-    streak = database.get_study_streak(get_db())
-    capacity = database.get_daily_capacity(get_db())
-    heatmap = database.get_weekly_workload_heatmap(get_db())
+    settings = store.get_user_settings(user, db_target)
+    streak = store.get_study_streak(user, db_target)
+    capacity = store.get_daily_capacity(user, db_target, max_safe_hours=float(settings.get("maxSafeHours", 6.0)))
+    heatmap = store.get_weekly_workload_heatmap(user, db_target)
+    routines = store.get_routines(user, db_target)
+    legacy_migration = database.get_legacy_migration_status(db_target)
     quote = random.choice(MOTIVATIONAL_QUOTES)
 
     return render_template(
@@ -136,17 +329,16 @@ def dashboard():
         streak=streak,
         capacity=capacity,
         heatmap=heatmap,
-        quote=quote
+        routines=routines,
+        legacy_migration=legacy_migration,
+        quote=quote,
     )
 
 
 @app.route("/add-task", methods=["GET", "POST"])
+@login_required
 def add_task():
-    """
-    Add Task Page:
-    Allows user to input title, subject, deadline, difficulty, importance, estimated hours.
-    Validates according to Criterion B pseudocode and calculates priority score.
-    """
+    """Add Task Page scoped strictly to the authenticated user."""
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         subject = request.form.get("subject", "").strip()
@@ -155,8 +347,6 @@ def add_task():
         importance = request.form.get("importance", "").strip()
         estimated_hours = request.form.get("estimated_hours", "").strip()
 
-        # Validation per pseudocode:
-        # IF title IS EMPTY OR subject IS EMPTY OR deadline IS EMPTY THEN
         if not title or not subject or not deadline:
             flash("Please complete all required fields", "danger")
             return render_template("add_task.html", form_data=request.form), 400
@@ -169,7 +359,6 @@ def add_task():
             flash("Invalid input", "danger")
             return render_template("add_task.html", form_data=request.form), 400
 
-        # Boundary checks: difficulty 1-5, importance 1-5, target hours > 0 if entered
         if diff_int < 1 or diff_int > 5 or imp_int < 1 or imp_int > 5 or (hours_float is not None and hours_float <= 0):
             flash("Invalid input", "danger")
             return render_template("add_task.html", form_data=request.form), 400
@@ -181,14 +370,15 @@ def add_task():
             return render_template("add_task.html", form_data=request.form), 400
 
         try:
-            task_id = database.add_task(
+            store.add_task(
+                user=g.user,
+                db_path=get_db(),
                 title=title,
                 subject=subject,
                 deadline=deadline,
                 difficulty=diff_int,
                 importance=imp_int,
                 estimated_hours=hours_float,
-                db_path=get_db()
             )
             flash("Task added successfully", "success")
             return redirect(url_for("study_plan"))
@@ -200,28 +390,23 @@ def add_task():
 
 
 @app.route("/study-plan")
+@login_required
 def study_plan():
-    """
-    Study Plan Page:
-    Displays all pending tasks sorted by Priority Score in descending order.
-    Shows score breakdown, urgency, workload, overdue tags, and action controls.
-    """
-    tasks = database.get_study_plan(get_db())
-    completed_tasks = database.get_completed_tasks(get_db())
+    """Algorithmic Study Plan scoped strictly to the authenticated user."""
+    tasks = store.get_study_plan(g.user, get_db())
+    completed_tasks = store.get_completed_tasks(g.user, get_db())
     return render_template(
         "study_plan.html",
         tasks=tasks,
-        completed_tasks=completed_tasks
+        completed_tasks=completed_tasks,
     )
 
 
-@app.route("/edit-task/<int:task_id>", methods=["GET", "POST"])
+@app.route("/edit-task/<task_id>", methods=["GET", "POST"])
+@login_required
 def edit_task(task_id):
-    """
-    Edit Task Page:
-    Loads existing task, validates changes, recalculates priority score and updates database.
-    """
-    task = database.get_task_by_id(task_id, get_db())
+    """Edit Task Page enforcing ownership via user UID."""
+    task = store.get_task_by_id(g.user, get_db(), task_id)
     if not task:
         flash("Task not found", "danger")
         return redirect(url_for("dashboard"))
@@ -258,7 +443,9 @@ def edit_task(task_id):
             return render_template("edit_task.html", task=task, form_data=request.form), 400
 
         try:
-            database.update_task(
+            store.update_task(
+                user=g.user,
+                db_path=get_db(),
                 task_id=task_id,
                 title=title,
                 subject=subject,
@@ -267,7 +454,6 @@ def edit_task(task_id):
                 importance=imp_int,
                 estimated_hours=hours_float,
                 status=status,
-                db_path=get_db()
             )
             flash("Task updated successfully", "success")
             return redirect(url_for("study_plan"))
@@ -278,10 +464,11 @@ def edit_task(task_id):
     return render_template("edit_task.html", task=task, form_data=task)
 
 
-@app.route("/complete-task/<int:task_id>", methods=["POST"])
+@app.route("/complete-task/<task_id>", methods=["POST"])
+@login_required
 def complete_task(task_id):
-    """Marks task as completed."""
-    success = database.complete_task(task_id, get_db())
+    """Marks a user's task as completed."""
+    success = store.complete_task(g.user, get_db(), task_id)
     if success:
         flash("Task marked as completed", "success")
     else:
@@ -291,10 +478,11 @@ def complete_task(task_id):
     return redirect(redirect_to)
 
 
-@app.route("/delete-task/<int:task_id>", methods=["POST"])
+@app.route("/delete-task/<task_id>", methods=["POST"])
+@login_required
 def delete_task(task_id):
-    """Deletes task from database."""
-    success = database.delete_task(task_id, get_db())
+    """Deletes a user's task."""
+    success = store.delete_task(g.user, get_db(), task_id)
     if success:
         flash("Task deleted successfully", "success")
     else:
@@ -304,12 +492,125 @@ def delete_task(task_id):
     return redirect(redirect_to)
 
 
+# =============================================================================
+# Personal Study Routines & Account Settings Routes
+# =============================================================================
+
+@app.route("/routines")
+@login_required
+def routines_page():
+    """Displays the authenticated user's personal weekly study routine schedule."""
+    selected_day = request.args.get("day", "All").strip()
+    all_routines = store.get_routines(g.user, get_db())
+    if selected_day != "All":
+        filtered = [r for r in all_routines if r["dayOfWeek"].lower() == selected_day.lower()]
+    else:
+        filtered = all_routines
+    return render_template(
+        "routines.html",
+        routines=filtered,
+        all_routines_count=len(all_routines),
+        selected_day=selected_day,
+    )
+
+
+@app.route("/routines/add", methods=["POST"])
+@login_required
+def add_routine_route():
+    title = request.form.get("title", "").strip()
+    subject = request.form.get("subject", "").strip()
+    day_of_week = request.form.get("day_of_week", "").strip()
+    start_time = request.form.get("start_time", "17:00").strip()
+    end_time = request.form.get("end_time", "18:00").strip()
+    focus_goal = request.form.get("focus_goal", "").strip()
+
+    try:
+        store.add_routine(
+            user=g.user,
+            db_path=get_db(),
+            title=title,
+            subject=subject,
+            day_of_week=day_of_week,
+            start_time=start_time,
+            end_time=end_time,
+            focus_goal=focus_goal,
+        )
+        flash("Study routine block added to your personal schedule.", "success")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    return redirect(url_for("routines_page"))
+
+
+@app.route("/routines/<routine_id>/toggle", methods=["POST"])
+@login_required
+def toggle_routine_route(routine_id):
+    if store.toggle_routine(g.user, get_db(), routine_id):
+        flash("Routine status updated.", "info")
+    else:
+        flash("Routine not found.", "danger")
+    return redirect(request.referrer or url_for("routines_page"))
+
+
+@app.route("/routines/<routine_id>/delete", methods=["POST"])
+@login_required
+def delete_routine_route(routine_id):
+    if store.delete_routine(g.user, get_db(), routine_id):
+        flash("Routine block removed.", "success")
+    else:
+        flash("Routine not found.", "danger")
+    return redirect(request.referrer or url_for("routines_page"))
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings_page():
+    """Account profile, preferences, and legacy local data migration settings."""
+    if request.method == "POST":
+        try:
+            max_safe = float(request.form.get("max_safe_hours", 6.0))
+            default_focus = int(request.form.get("default_focus_minutes", 25))
+            sound_on = request.form.get("sound_effects_enabled") == "on"
+            store.update_user_settings(g.user, get_db(), max_safe, default_focus, sound_on)
+            flash("Your personal study preferences have been saved.", "success")
+        except Exception as exc:
+            flash(f"Could not save preferences: {exc}", "danger")
+        return redirect(url_for("settings_page"))
+
+    settings = store.get_user_settings(g.user, get_db())
+    legacy_migration = database.get_legacy_migration_status(get_db())
+    return render_template("settings.html", settings=settings, legacy_migration=legacy_migration)
+
+
+@app.route("/api/migrate-legacy-data", methods=["POST"])
+@login_required
+def migrate_legacy_data():
+    """Associates unclaimed pre-authentication SQLite data with the confirming user only."""
+    try:
+        count = database.migrate_legacy_data_to_user(
+            uid=g.user["uid"],
+            id_token=g.user.get("id_token") if firebase_auth.is_firebase_configured() else None,
+            db_path=get_db(),
+        )
+        flash(f"Imported {count} pre-existing study task(s) into your private workspace.", "success")
+        return jsonify({"success": True, "migrated_count": count})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@app.route("/api/dismiss-legacy-migration", methods=["POST"])
+@login_required
+def dismiss_legacy_migration_api():
+    database.dismiss_legacy_migration(get_db())
+    return jsonify({"success": True})
+
+
+# =============================================================================
+# Priority Preview, Simulator, Export, Subtasks & Time Intelligence APIs
+# =============================================================================
+
 @app.route("/api/preview-priority", methods=["POST"])
+@login_required
 def preview_priority():
-    """
-    Live priority calculation API for client-side dynamic feedback.
-    Returns urgency, workload, and overall priority score.
-    """
     data = request.get_json(silent=True) or request.form
     try:
         deadline = data.get("deadline")
@@ -320,37 +621,30 @@ def preview_priority():
 
         score = calculate_priority(deadline, difficulty, importance, hours_val)
         overdue = is_overdue(deadline)
-        return jsonify({
-            "priority_score": score,
-            "is_overdue": overdue
-        })
+        return jsonify({"priority_score": score, "is_overdue": overdue})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/export/calendar.ics")
+@login_required
 def export_calendar():
-    """
-    Exports all pending tasks as an RFC-5545 iCalendar (.ics) file.
-    Can be directly imported into Google Calendar, Apple Calendar, or Outlook.
-    """
-    tasks = database.get_pending_tasks(get_db())
-    
+    """Exports the authenticated user's pending tasks as an RFC-5545 iCalendar (.ics) file."""
+    tasks = store.get_pending_tasks(g.user, get_db())
+
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "PRODID:-//Smart Study Planner//Priority Task Calendar//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
-        "X-WR-CALNAME:Smart Study Planner Schedule"
+        "X-WR-CALNAME:SYNTRIQ Study Planner Schedule",
     ]
-    
     now_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    
+
     for t in tasks:
-        # Format date for all-day event
         dt_val = t["Task_Deadline"].replace("-", "")
-        uid = f"task-{t['Task_ID']}-planner@smartstudy"
+        uid = f"task-{t['Task_ID']}-planner@syntriq"
         summary = f"[{t['Task_Subject']}] {t['Task_Title']} (Priority {t['Priority_Score']})"
         description = (
             f"Subject: {t['Task_Subject']}\\n"
@@ -358,7 +652,6 @@ def export_calendar():
             f"Importance: {t['Task_Importance']}/5 | Difficulty: {t['Task_Difficulty']}/5\\n"
             f"Estimated Hours: {t['Estimated_Hours']} hrs"
         )
-        
         lines.extend([
             "BEGIN:VEVENT",
             f"UID:{uid}",
@@ -369,157 +662,139 @@ def export_calendar():
             f"DESCRIPTION:{description}",
             "STATUS:CONFIRMED",
             "TRANSP:TRANSPARENT",
-            "END:VEVENT"
+            "END:VEVENT",
         ])
-        
+
     lines.append("END:VCALENDAR")
-    ics_content = "\r\n".join(lines)
-    
     return Response(
-        ics_content,
+        "\r\n".join(lines),
         mimetype="text/calendar",
-        headers={"Content-Disposition": "attachment; filename=study_plan_schedule.ics"}
+        headers={"Content-Disposition": "attachment; filename=study_plan_schedule.ics"},
     )
 
 
-@app.route("/api/tasks/<int:task_id>/subtasks", methods=["POST"])
+@app.route("/api/tasks/<task_id>/subtasks", methods=["POST"])
+@login_required
 def add_subtask(task_id):
-    """Adds a subtask to an existing assignment."""
     data = request.get_json(silent=True) or request.form
     title = data.get("title", "").strip()
     if not title:
         return jsonify({"error": "Subtask title is required"}), 400
     try:
-        subtask_id = database.add_subtask(task_id, title, get_db())
+        subtask_id = store.add_subtask(g.user, get_db(), task_id, title)
         return jsonify({"success": True, "subtask_id": subtask_id, "title": title})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
-@app.route("/api/subtasks/<int:subtask_id>/toggle", methods=["POST"])
+@app.route("/api/subtasks/<subtask_id>/toggle", methods=["POST"])
+@login_required
 def toggle_subtask(subtask_id):
-    """Toggles completion status of a subtask."""
-    success = database.toggle_subtask(subtask_id, get_db())
-    if success:
+    if store.toggle_subtask(g.user, get_db(), subtask_id):
         return jsonify({"success": True})
     return jsonify({"error": "Subtask not found"}), 404
 
 
-@app.route("/api/subtasks/<int:subtask_id>/delete", methods=["POST"])
+@app.route("/api/subtasks/<subtask_id>/delete", methods=["POST"])
+@login_required
 def delete_subtask(subtask_id):
-    """Deletes a subtask."""
-    success = database.delete_subtask(subtask_id, get_db())
-    if success:
+    if store.delete_subtask(g.user, get_db(), subtask_id):
         return jsonify({"success": True})
     return jsonify({"error": "Subtask not found"}), 404
 
 
 @app.route("/api/log-session", methods=["POST"])
+@login_required
 def log_session():
-    """Logs a completed study focus session."""
     data = request.get_json(silent=True) or request.form
     try:
-        task_id = data.get("task_id")
-        task_id = int(task_id) if task_id else None
+        task_id = data.get("task_id") or None
         minutes = int(data.get("minutes", 25))
-        session_id = database.log_study_session(task_id, minutes, get_db())
-        streak = database.get_study_streak(get_db())
+        session_id = store.log_study_session(g.user, get_db(), task_id, minutes)
+        streak = store.get_study_streak(g.user, get_db())
         return jsonify({"success": True, "session_id": session_id, "streak": streak})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
-# =============================================================================
-# Real-Time Time Intelligence & Active Session APIs
-# =============================================================================
-
 @app.route("/api/active-session")
+@login_required
 def get_active_session_api():
-    """Returns the current active tracking session (if any) with live elapsed seconds."""
-    active = database.get_active_session(get_db())
+    active = store.get_active_session(g.user, get_db())
     return jsonify(active or {"has_active": False})
 
 
 @app.route("/api/time-tracking/start", methods=["POST"])
+@login_required
 def start_time_tracking():
-    """Starts or resumes tracking for a specific task."""
     data = request.get_json(silent=True) or request.form
     try:
-        task_id = int(data.get("task_id", 0))
+        task_id = data.get("task_id", "")
         force = bool(data.get("force", False) or data.get("force_switch", False))
-        result = database.start_tracking_session(task_id, force=force, db_path=get_db())
+        result = store.start_tracking_session(g.user, get_db(), task_id, force=force)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/api/time-tracking/pause", methods=["POST"])
+@login_required
 def pause_time_tracking():
-    """Pauses the currently active session without losing accumulated seconds."""
     try:
-        result = database.pause_tracking_session(get_db())
+        result = store.pause_tracking_session(g.user, get_db())
         return jsonify(result or {"paused": False})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/api/time-tracking/resume", methods=["POST"])
+@login_required
 def resume_time_tracking():
-    """Resumes the paused tracking session."""
     try:
-        result = database.resume_tracking_session(get_db())
+        result = store.resume_tracking_session(g.user, get_db())
         return jsonify(result or {"resumed": False})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/api/time-tracking/stop", methods=["POST"])
+@login_required
 def stop_time_tracking():
-    """Stops the active session and commits its duration."""
     try:
-        result = database.stop_tracking_session(get_db())
+        result = store.stop_tracking_session(g.user, get_db())
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
-@app.route("/api/tasks/<int:task_id>/sessions")
+@app.route("/api/tasks/<task_id>/sessions")
+@login_required
 def get_task_sessions_api(task_id):
-    """Retrieves session history for a specific task."""
     try:
-        sessions = database.get_task_sessions(task_id, get_db())
-        return jsonify({"task_id": task_id, "sessions": sessions, "total_sessions": len(sessions)})
+        sessions = store.get_task_sessions(g.user, get_db(), task_id)
+        resp_tid = int(task_id) if str(task_id).isdigit() else task_id
+        return jsonify({"task_id": resp_tid, "sessions": sessions, "total_sessions": len(sessions)})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/time-intelligence")
+@login_required
 def time_intelligence():
-    """
-    Dedicated SYNTRIQ Time Intelligence Dashboard:
-    - Today's, week's, month's, and total recorded focus time
-    - Subject-wise actual time breakdown
-    - Chronological session timeline
-    - Completed task focus analytics
-    - Contextual real-data insights
-    """
-    intel = database.get_time_intelligence_data(get_db())
+    intel = store.get_time_intelligence_data(g.user, get_db())
     return render_template("time_intelligence.html", intel=intel)
 
 
 @app.route("/api/time-intelligence")
+@login_required
 def api_time_intelligence():
-    """Returns real-time Time Intelligence metrics in JSON format."""
-    intel = database.get_time_intelligence_data(get_db())
+    intel = store.get_time_intelligence_data(g.user, get_db())
     return jsonify(intel)
 
 
 @app.route("/api/simulate-priority", methods=["POST"])
+@login_required
 def simulate_priority():
-    """
-    Simulation API: Takes base task values and hypothetical shifts in deadline and hours,
-    returns the simulated score, urgency, workload, and difference.
-    """
     data = request.get_json(silent=True) or request.form
     try:
         deadline_str = data.get("deadline")
@@ -541,42 +816,50 @@ def simulate_priority():
             "simulated_score": simulated_score,
             "score_diff": round(simulated_score - original_score, 2),
             "simulated_deadline": simulated_date.strftime("%Y-%m-%d"),
-            "simulated_hours": simulated_hours
+            "simulated_hours": simulated_hours,
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
 
 @app.route("/clear-all-tasks", methods=["POST"])
+@login_required
 def clear_all_tasks():
-    """Clears all tasks from database so the user can test with a clean slate."""
-    database.clear_all_tasks(get_db())
-    flash("All previous tasks have been deleted. You can now test with your own inputs!", "info")
+    store.clear_all_tasks(g.user, get_db())
+    flash("All tasks in your personal workspace have been deleted.", "info")
     return redirect(url_for("dashboard"))
 
 
 @app.route("/seed-sample-tasks", methods=["POST"])
+@login_required
 def seed_sample_tasks():
-    """Loads sample tasks for demonstration."""
-    database.clear_all_tasks(get_db())
-    database.seed_sample_tasks(get_db())
-    flash("Sample tasks loaded successfully.", "info")
+    store.clear_all_tasks(g.user, get_db())
+    today = date.today()
+    samples = [
+        ("Mathematics Calculus Problem Set", "Mathematics", (today + timedelta(days=1)).strftime("%Y-%m-%d"), 4, 5, 3.0),
+        ("Physics Internal Assessment Draft", "Physics", (today + timedelta(days=2)).strftime("%Y-%m-%d"), 5, 5, 6.5),
+        ("Chemistry Chapter 4 Reading", "Chemistry", (today - timedelta(days=1)).strftime("%Y-%m-%d"), 2, 4, 1.5),
+        ("English Literature Essay on Hamlet", "English Literature", (today + timedelta(days=5)).strftime("%Y-%m-%d"), 4, 4, 4.0),
+        ("Spanish Vocabulary Flashcards", "Spanish", (today + timedelta(days=12)).strftime("%Y-%m-%d"), 2, 2, 1.0),
+    ]
+    for title, subj, dl, d, i, h in samples:
+        store.add_task(g.user, get_db(), title=title, subject=subj, deadline=dl, difficulty=d, importance=i, estimated_hours=h)
+    flash("Sample tasks loaded into your workspace.", "info")
     return redirect(url_for("dashboard"))
 
 
 @app.route("/reset-database", methods=["POST"])
+@login_required
 def reset_database():
-    """Clears all tasks."""
     return clear_all_tasks()
 
 
 @app.route("/favicon.ico")
 def favicon():
-    """Serves the standard favicon.ico file."""
     return send_from_directory(
         os.path.join(app.root_path, "static"),
         "favicon.ico",
-        mimetype="image/vnd.microsoft.icon"
+        mimetype="image/vnd.microsoft.icon",
     )
 
 

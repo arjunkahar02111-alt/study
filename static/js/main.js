@@ -419,7 +419,11 @@ function onPomodoroFinished() {
 let audioCtx = null;
 let ambientSource = null;
 let ambientGain = null;
-let soundEffectsEnabled = localStorage.getItem("planner_sound_fx") !== "false";
+function getSoundStorageKey() {
+    const uid = (window.SYNTRIQ_AUTH_CONFIG && window.SYNTRIQ_AUTH_CONFIG.currentUid) || "anon";
+    return `syntriq_${uid}_sound_fx`;
+}
+let soundEffectsEnabled = localStorage.getItem(getSoundStorageKey()) !== "false";
 let tickingEnabled = false;
 
 function initSoundSystem() {
@@ -450,7 +454,7 @@ function updateSoundButtonUI() {
 
 function toggleSoundMute() {
     soundEffectsEnabled = !soundEffectsEnabled;
-    localStorage.setItem("planner_sound_fx", soundEffectsEnabled ? "true" : "false");
+    localStorage.setItem(getSoundStorageKey(), soundEffectsEnabled ? "true" : "false");
     updateSoundButtonUI();
     if (soundEffectsEnabled) {
         playPopSound();
@@ -1490,3 +1494,67 @@ function confirmSwitchActiveTask() {
     })
     .catch(err => console.error("Switch tracking error:", err));
 }
+
+/* ==========================================================================
+   Profile Dropdown & Safe Legacy Data Migration
+   ========================================================================== */
+
+function toggleProfileDropdown() {
+    const menu = document.getElementById("profileDropdownMenu");
+    const btn = document.getElementById("profileDropdownBtn");
+    if (!menu) return;
+    const isOpen = menu.style.display === "block";
+    menu.style.display = isOpen ? "none" : "block";
+    if (btn) btn.setAttribute("aria-expanded", String(!isOpen));
+}
+
+document.addEventListener("click", (e) => {
+    const wrap = document.getElementById("profileDropdownWrap");
+    const menu = document.getElementById("profileDropdownMenu");
+    const btn = document.getElementById("profileDropdownBtn");
+    if (wrap && menu && !wrap.contains(e.target)) {
+        menu.style.display = "none";
+        if (btn) btn.setAttribute("aria-expanded", "false");
+    }
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        const menu = document.getElementById("profileDropdownMenu");
+        if (menu) menu.style.display = "none";
+    }
+});
+
+function importLegacyData(btn) {
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Importing...";
+    }
+    fetch("/api/migrate-legacy-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+    })
+    .then(res => res.json())
+    .then(() => window.location.reload())
+    .catch(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Import to My Workspace";
+        }
+    });
+}
+
+function dismissLegacyMigration() {
+    fetch("/api/dismiss-legacy-migration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+    })
+    .then(() => {
+        const banner = document.getElementById("legacyMigrationBanner");
+        if (banner) banner.remove();
+    })
+    .catch(() => {});
+}
+

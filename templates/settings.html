@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <div class="page-header">
+        <div class="header-intro">
+            <h1 class="page-title">Account &amp; Workspace Settings</h1>
+            <p class="page-subtitle">Manage your Google profile, personal study thresholds, and workspace security.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="form-layout-grid">
+        <!-- Profile Identity Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Google Account Identity</h2>
+                <span class="badge badge-success">Verified</span>
+            </div>
+            <div class="card-body">
+                <div class="profile-summary-card">
+                    {% if current_user.picture %}
+                    <img src="{{ current_user.picture }}" alt="{{ current_user.name }}" class="profile-avatar-lg" referrerpolicy="no-referrer">
+                    {% else %}
+                    <div class="profile-avatar-lg profile-avatar-fallback">{{ (current_user.name or 'S')[0]|upper }}</div>
+                    {% endif %}
+                    <div>
+                        <h3 style="margin-bottom: 4px;">{{ current_user.name or 'SYNTRIQ Student' }}</h3>
+                        <p class="text-secondary" style="font-size: 0.92rem; margin-bottom: 6px;">{{ current_user.email }}</p>
+                        <span class="subject-tag">UID: {{ current_user.uid }}</span>
+                    </div>
+                </div>
+
+                <hr class="card-divider">
+
+                <p class="text-secondary" style="font-size: 0.88rem; margin-bottom: 16px;">
+                    All tasks, routines, focus timers, and Time Intelligence records are strictly isolated to your Firebase UID. Logging out safely preserves your active session and schedule for your next sign-in.
+                </p>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline" onclick="window.SyntriqAuth ? window.SyntriqAuth.switchAccountSafely() : document.getElementById('logoutForm').submit();">
+                        Switch Google Account
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="if(confirm('Sign out of your SYNTRIQ account?')) { window.SyntriqAuth ? window.SyntriqAuth.logoutSafely() : document.getElementById('logoutForm').submit(); }">
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Study Preferences Card -->
+        <div class="card form-card">
+            <div class="card-header">
+                <h2 class="card-title">Study Preferences</h2>
+                <span class="card-subtitle">Synced to your personal settings</span>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('settings_page') }}" method="POST">
+                    <div class="form-group">
+                        <label for="max_safe_hours" class="form-label">Daily Safe Workload Limit (Hours)</label>
+                        <input type="number" id="max_safe_hours" name="max_safe_hours" class="form-control" min="1" max="16" step="0.5" value="{{ settings.maxSafeHours }}">
+                        <small class="form-text">Dashboard triggers an overload warning if tasks due today exceed this threshold.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="default_focus_minutes" class="form-label">Default Focus Timer Preset</label>
+                        <select id="default_focus_minutes" name="default_focus_minutes" class="form-control">
+                            <option value="25" {% if settings.defaultFocusMinutes == 25 %}selected{% endif %}>25 minutes (Pomodoro Standard)</option>
+                            <option value="50" {% if settings.defaultFocusMinutes == 50 %}selected{% endif %}>50 minutes (Deep Work)</option>
+                            <option value="45" {% if settings.defaultFocusMinutes == 45 %}selected{% endif %}>45 minutes (Exam Block)</option>
+                            <option value="15" {% if settings.defaultFocusMinutes == 15 %}selected{% endif %}>15 minutes (Quick Sprint)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" name="sound_effects_enabled" {% if settings.soundEffectsEnabled %}checked{% endif %}>
+                            <span>Enable acoustic focus chimes &amp; UI sound effects</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Preferences</button>
+                </form>
+
+                {% if legacy_migration and legacy_migration.available %}
+                <hr class="card-divider">
+                <div class="alert alert-info" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <div>
+                        <strong>Legacy Local Data Detected ({{ legacy_migration.legacy_count }} task(s))</strong>
+                        <p style="font-size: 0.86rem; margin-top: 4px;">
+                            Unclaimed tasks from before multi-user authentication exist in local storage. You may optionally import them into your personal workspace once.
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="importLegacyData(this);">
+                        Import Local Tasks Into My Account
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

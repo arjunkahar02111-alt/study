@@ -123,7 +123,7 @@
 
                     <!-- Subtask Checklist Decomposer -->
                     <div class="subtasks-container">
-                        <div class="subtasks-header" onclick="toggleSubtasksView({{ task.Task_ID }});">
+                        <div class="subtasks-header" onclick='toggleSubtasksView({{ task.Task_ID|tojson }});'>
                             <span class="subtasks-title">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                                 Sub-Milestones 
@@ -138,16 +138,16 @@
                                 {% for sub in task.subtasks %}
                                 <li class="subtask-item {% if sub.Is_Completed %}subtask-done{% endif %}" id="subtaskItem-{{ sub.Subtask_ID }}">
                                     <label class="subtask-checkbox-label">
-                                        <input type="checkbox" {% if sub.Is_Completed %}checked{% endif %} onchange="toggleSubtaskStatus({{ sub.Subtask_ID }}, {{ task.Task_ID }});">
+                                        <input type="checkbox" {% if sub.Is_Completed %}checked{% endif %} onchange='toggleSubtaskStatus({{ sub.Subtask_ID|tojson }}, {{ task.Task_ID|tojson }});'>
                                         <span class="subtask-text">{{ sub.Subtask_Title }}</span>
                                     </label>
-                                    <button type="button" class="subtask-del-btn" onclick="deleteSubtaskItem({{ sub.Subtask_ID }}, {{ task.Task_ID }});">&times;</button>
+                                    <button type="button" class="subtask-del-btn" onclick='deleteSubtaskItem({{ sub.Subtask_ID|tojson }}, {{ task.Task_ID|tojson }});'>&times;</button>
                                 </li>
                                 {% endfor %}
                             </ul>
                             <div class="subtask-add-bar">
-                                <input type="text" id="newSubtaskInput-{{ task.Task_ID }}" class="subtask-input" placeholder="Add study milestone..." onkeydown="if(event.key==='Enter') createSubtask({{ task.Task_ID }});">
-                                <button type="button" class="btn btn-sm btn-primary" onclick="createSubtask({{ task.Task_ID }});">+</button>
+                                <input type="text" id="newSubtaskInput-{{ task.Task_ID }}" class="subtask-input" placeholder="Add study milestone..." onkeydown='if(event.key==="Enter") createSubtask({{ task.Task_ID|tojson }});'>
+                                <button type="button" class="btn btn-sm btn-primary" onclick='createSubtask({{ task.Task_ID|tojson }});'>+</button>
                             </div>
                         </div>
                     </div>
@@ -166,11 +166,11 @@
 
                 <!-- Actions Column -->
                 <div class="actions-col">
-                    <button type="button" class="btn btn-primary btn-block pomo-task-btn" onclick="openPomodoroForTask('{{ task.Task_Title|replace("'", "\\'") }}', '{{ task.Task_Subject|replace("'", "\\'") }}', {{ task.Task_ID }});" title="Start Focus Session">
+                    <button type="button" class="btn btn-primary btn-block pomo-task-btn" onclick='openPomodoroForTask({{ task.Task_Title|tojson }}, {{ task.Task_Subject|tojson }}, {{ task.Task_ID|tojson }});' title="Start Focus Session">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align: -2px; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         Focus Session
                     </button>
-                    <button type="button" class="btn btn-outline btn-block track-task-btn track-btn-{{ task.Task_ID }}" onclick="toggleTimeTracking({{ task.Task_ID }});" title="Start / Stop Live Time Tracking">
+                    <button type="button" class="btn btn-outline btn-block track-task-btn track-btn-{{ task.Task_ID }}" onclick='toggleTimeTracking({{ task.Task_ID|tojson }});' title="Start / Stop Live Time Tracking">
                         ⏱ <span class="track-btn-text">Track Time</span>
                     </button>
                     <form action="{{ url_for('complete_task', task_id=task.Task_ID) }}" method="POST" onsubmit="triggerConfetti();">

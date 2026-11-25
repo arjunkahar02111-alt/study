@@ -53,6 +53,13 @@ class Syntriq3MasterTestSuite(unittest.TestCase):
         self._orig_db = database.DEFAULT_DB_PATH
         database.DEFAULT_DB_PATH = self.test_db
         database.init_db(self.test_db)
+        with self.client.session_transaction() as sess:
+            sess["user"] = {
+                "uid": "local_default",
+                "email": "qa.student@gmail.com",
+                "name": "QA Student",
+                "picture": "",
+            }
 
     def tearDown(self):
         gc.collect()

@@ -28,6 +28,13 @@ class SmartStudyPlannerTestCase(unittest.TestCase):
         app.config["TESTING"] = True
         app.config["WTF_CSRF_ENABLED"] = False
         self.client = app.test_client()
+        with self.client.session_transaction() as sess:
+            sess["user"] = {
+                "uid": "local_default",
+                "email": "test.student@gmail.com",
+                "name": "Test Student",
+                "picture": "",
+            }
 
         # Override DB_FILE in app context for route tests
         self.original_db = database.DEFAULT_DB_PATH

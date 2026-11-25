@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - SYNTRIQ Smart Study Planner</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+    <main class="auth-shell">
+        <div class="auth-card">
+            <div class="auth-brand-header">
+                <img src="{{ url_for('static', filename='images/syntriq-icon.png') }}" alt="SYNTRIQ Logo" class="auth-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title">SYNTRIQ</span>
+                    <span class="brand-subtitle">Think Smarter &bull; Study Better</span>
+                </div>
+            </div>
+
+            <div class="auth-copy">
+                <span class="badge-intel-pill" style="margin-bottom: 12px;">
+                    <span class="live-pulse-dot"></span>
+                    PRIVATE STUDY WORKSPACE
+                </span>
+                <h1 class="auth-heading">Welcome back</h1>
+                <p class="auth-desc">
+                    Sign in with your Google account to access your private study routine, algorithmic priority schedule, and real-time Time Intelligence analytics across all devices.
+                </p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="auth-flash-stack">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <span class="alert-message">{{ message }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <div id="authErrorBox" class="alert alert-danger" style="display:none; margin-bottom: 16px;" role="alert">
+                <span class="alert-icon">⚠</span>
+                <span id="authErrorText" class="alert-message">Authentication failed. Please try again.</span>
+            </div>
+
+            <div id="authRestoringBox" class="auth-restoring-banner" style="display:none;">
+                <span class="auth-spinner auth-spinner-dark"></span>
+                <span>Restoring your SYNTRIQ workspace...</span>
+            </div>
+
+            {% if not firebase_enabled %}
+            <div class="alert alert-warning" style="margin-bottom: 18px; text-align: left;">
+                <div>
+                    <strong>Firebase Configuration Required</strong>
+                    <p style="font-size: 0.85rem; margin-top: 4px;">
+                        Add your Firebase Web App credentials (<code>FIREBASE_API_KEY</code>, <code>FIREBASE_AUTH_DOMAIN</code>, <code>FIREBASE_PROJECT_ID</code>, etc.) to <code>.env</code> or Vercel Environment Variables. See <code>FIREBASE_SETUP.md</code> for exact steps.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <button
+                type="button"
+                id="googleSignInBtn"
+                class="btn-google-auth"
+                onclick="window.SyntriqAuth && window.SyntriqAuth.signInWithGoogle(false);"
+                {% if not firebase_enabled %}disabled aria-disabled="true"{% endif %}
+            >
+                <span class="google-btn-content" id="googleBtnContent">
+                    <svg class="google-g-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+                    </svg>
+                    <span>Continue with Google</span>
+                </span>
+                <span class="google-btn-loading" id="googleBtnLoading" style="display:none;">
+                    <span class="auth-spinner"></span>
+                    <span>Signing in securely...</span>
+                </span>
+            </button>
+
+            <button
+                type="button"
+                id="googleSwitchAccountBtn"
+                class="btn-text-link auth-switch-link"
+                onclick="window.SyntriqAuth && window.SyntriqAuth.signInWithGoogle(true);"
+                {% if not firebase_enabled %}disabled{% endif %}
+            >
+                Choose or switch another Google account
+            </button>
+
+            <div class="auth-security-footer">
+                <div class="security-chip">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>UID-Isolated Cloud Firestore</span>
+                </div>
+                <div class="security-chip">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    <span>Real-Time Multi-Device Sync</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        window.SYNTRIQ_AUTH_CONFIG = {
+            firebaseEnabled: {{ 'true' if firebase_enabled else 'false' }},
+            firebaseConfig: {{ firebase_config | tojson }},
+            isAuthenticated: false,
+            currentUid: null,
+            nextUrl: {{ next_url | tojson }}
+        };
+    </script>
+    {% if firebase_enabled %}
+    <script type="module" src="{{ url_for('static', filename='js/firebase-auth.js') }}?v=4.0"></script>
+    {% endif %}
+</body>
+</html>

@@ -40,6 +40,13 @@ class TestTimeIntelligenceEngine(unittest.TestCase):
         app.config["TESTING"] = True
         app.config["DB_FILE"] = self.db_path
         self.app = app.test_client()
+        with self.app.session_transaction() as sess:
+            sess["user"] = {
+                "uid": "local_default",
+                "email": "intel.student@gmail.com",
+                "name": "Intel Student",
+                "picture": "",
+            }
         # Override default db for app context
         self._orig_db_path = db.DEFAULT_DB_PATH
         db.DEFAULT_DB_PATH = self.db_path
