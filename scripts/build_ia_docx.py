@@ -667,31 +667,39 @@ def build_docx(paths: dict, output_path: str):
     crit_a_scenario = (
         "As an International Baccalaureate Diploma Programme student managing six demanding subjects alongside "
         "Internal Assessments and the Extended Essay, I frequently struggle to allocate daily study time "
-        "effectively. Each assignment differs in deadline urgency, academic weight, cognitive difficulty, and "
-        "expected duration. Static paper checklists and basic to-do spreadsheets only store names and due dates "
-        "without automated prioritization or personal cloud synchronization across devices. Consequently, low-impact "
-        "tasks are often completed prematurely while urgent, high-stakes coursework is delayed, and real focus hours "
-        "per subject remain unmeasured. To resolve this, I built SYNTRIQ, a multi-user Smart Study Planner and "
+        "effectively. Each assignment differs in deadline urgency, academic importance, cognitive difficulty, and "
+        "expected workload. Static paper checklists and basic spreadsheets only record task names and due dates "
+        "without automated prioritization or secure multi-device synchronization. Consequently, low-impact "
+        "homework is often finished prematurely while urgent coursework is delayed, and real focus hours per "
+        "subject remain unmeasured. To resolve this, I developed SYNTRIQ, a multi-user Smart Study Planner and "
         "Real-Time Time Intelligence web platform that mathematically ranks assignments, secures personal weekly "
         "routines behind Google Sign-In, and tracks verified focus sessions."
     )
 
-    crit_a_context = (
-        "I selected a cloud-backed web application rather than a standalone desktop utility so students can "
-        "access their personal workspace across laptops, tablets, and phones after browser login. The backend uses "
-        "Python and Flask following a clean Model-View-Controller separation: priority_calculator.py performs pure "
-        "mathematical scoring, firebase_auth.py verifies Firebase Google OAuth ID tokens without exposing service "
-        "secrets, and store.py dispatches each verified Firebase UID to either Cloud Firestore (firestore_store.py) "
-        "protected by UID-enforced Security Rules (firestore.rules) or an isolated parameterized SQLite store "
-        "(database.py) for local testing. This dual-store design guarantees zero cross-user data leakage, survives "
-        "serverless deployments on Vercel, and supports deterministic offline verification."
+    crit_a_client = (
+        "The primary clients are myself and fellow IB Diploma students at my school (tested by peer learners) who "
+        "need a private, distraction-free study workspace accessible from school laptops and personal phones. "
+        "Client consultation revealed three mandatory constraints: each student's schedule and routines must be "
+        "strictly isolated by account login, task creation must remain fast without forcing duration estimates, "
+        "and study timers must measure genuine focus time without losing seconds during page reloads."
     )
-    crit_a_words = count_words(crit_a_scenario + " " + crit_a_context)
+
+    crit_a_context = (
+        "I selected a web architecture using Python, Flask, Firebase Google Authentication, Cloud Firestore, "
+        "SQLite, and HTML5/CSS3/Vanilla JavaScript instead of a local desktop executable or spreadsheet macro. "
+        "Python offers clean datetime arithmetic and high readability, while Flask stays lightweight for serverless "
+        "Vercel deployment. Cloud Firestore provides NoSQL UID-scoped persistence and real-time rules enforcement, "
+        "while parameterized SQLite ensures fast offline testing despite ephemeral serverless filesystem limits."
+    )
+    crit_a_words = count_words(crit_a_scenario + " " + crit_a_client + " " + crit_a_context)
 
     crit_c_prose = (
-        "The application separates HTML5/JavaScript presentation views, Flask route and authentication "
-        "controllers, algorithmic priority scoring, and dual-mode UID-isolated persistence across Cloud Firestore "
-        "collections and relational SQLite tables."
+        "The SYNTRIQ system model decomposes into browser presentation templates, a Flask authentication and routing "
+        "controller, a deterministic weighted priority algorithm, and a dual-mode persistence layer enforcing UID "
+        "isolation across Cloud Firestore and relational SQLite. Client interactions flow through authenticated REST "
+        "endpoints verified by cryptographic Firebase ID tokens before touching database records. Together with an "
+        "event-driven timestamp lock and unit, integration, and cross-UID security tests, these components ensure "
+        "accurate ranking and leak-free synchronization."
     )
     crit_c_words = count_words(crit_c_prose)
 
@@ -709,12 +717,13 @@ def build_docx(paths: dict, output_path: str):
                 "└── static/js/              # firebase-auth.js (OAuth) & main.js (Pomodoro, UI sync)"
             ),
             "prose": (
-                "Decoupling Flask controllers (app.py) from algorithmic logic (priority_calculator.py) and persistence "
-                "(store.py) enables independent unit testing and seamless storage portability. Every request routes "
-                "through store.py using the authenticated user's verified UID and Firebase ID token, writing to "
-                "users/{uid}/... in Cloud Firestore on production deployments while falling back cleanly to parameterized "
-                "SQLite tables during offline automated tests. Automated functional suites verify controller routes, "
-                "UID routing, and formula outputs independently of structural folder boundaries."
+                "Decoupling Flask route controllers (app.py) from algorithmic logic (priority_calculator.py) and storage "
+                "abstraction (store.py) keeps each layer modular and independently testable. Flask was chosen over "
+                "heavier frameworks like Django because SYNTRIQ needs no ORM migration overhead on serverless Vercel "
+                "functions; the disadvantage is implementing explicit session guards (@login_required) manually. Every "
+                "request routes by verified Firebase UID into Cloud Firestore (firestore_store.py) in production or "
+                "isolated SQLite tables locally. While the testing strategy effectively validates functional routes and "
+                "UID dispatch, structural separation itself relies on code organization rather than unit assertions."
             ),
         },
         {
@@ -730,12 +739,13 @@ def build_docx(paths: dict, output_path: str):
                 "    return round(score, 2)"
             ),
             "prose": (
-                "The priority algorithm converts heterogeneous assignment metrics into a normalized 1.00–5.00 score, "
-                "weighting deadline urgency highest (40%) followed by importance (30%), difficulty (20%), and workload "
-                "(10%). Crucially, calculate_workload() applies a neutral fallback of 3 when estimated_hours is omitted, "
-                "enabling rapid task creation without arbitrary duration guesses while maintaining mathematical ranking "
-                "consistency. Deterministic unit tests verify exact scores under full inputs (up to 5.00 maximum) and "
-                "omitted durations (neutral 0.30 workload contribution)."
+                "Implementing the ranking engine in Python provides exact date-delta arithmetic and readable exception "
+                "handling compared to fragile spreadsheet formulas, though Python's interpreted execution is slower "
+                "than compiled C++—negligible for sub-1,000 student tasks. The weighted equation emphasizes deadline "
+                "urgency (40%) and importance (30%) over difficulty (20%) and workload (10%), returning normalized scores "
+                "from 1.00 to 5.00. Crucially, calculate_workload() substitutes a neutral value of 3 when target hours "
+                "are omitted, preserving ranking fairness. Deterministic unit tests thoroughly validate full-input "
+                "boundaries (5.00 max) and neutral-workload edge cases (0.30 contribution)."
             ),
         },
         {
@@ -754,12 +764,13 @@ def build_docx(paths: dict, output_path: str):
                 "}"
             ),
             "prose": (
-                "Security is enforced at both the Flask gateway and the Cloud Firestore database engine rather than "
-                "relying on frontend filtering. After Google Sign-In, firebase_auth.verify_firebase_id_token() validates "
-                "cryptographic signatures and stores an HttpOnly session cookie scoped to request.auth.uid. Because "
-                "firestore_store.py passes the user's Bearer ID token directly to Firestore's REST API, firestore.rules "
-                "mathematically blocks cross-user reads, writes, or ownership tampering. The 7-test multi-user suite "
-                "confirms two users maintain independent routines, tasks, and timers while cross-UID API calls return 404/401."
+                "Relying solely on Firebase Auth eliminates password-storage risk and accelerates login, at the cost "
+                "of requiring Google accounts and active internet during OAuth sign-in. After Google login, "
+                "firebase_auth.verify_firebase_id_token() validates JWT signatures before setting an HttpOnly Flask "
+                "session cookie. Because firestore_store.py forwards the user's Bearer ID token directly to Firestore's "
+                "REST API, server-side firestore.rules verify request.auth.uid == uid and guard ownerUnchanged() against "
+                "null resources during document creation. The testing strategy effectively verifies two-user workspace "
+                "isolation and cross-UID rejection (HTTP 404/401) across tasks, routines, and timers."
             ),
         },
         {
@@ -776,11 +787,13 @@ def build_docx(paths: dict, output_path: str):
                 "    return render_template(\"add_task.html\", form_data=request.form), 400"
             ),
             "prose": (
-                "Validation operates defensively across the controller and storage layers. Route handlers in app.py "
-                "strip text inputs, catch type-parsing exceptions, and reject out-of-range ratings with HTTP 400 and "
-                "preserved form fields. At the storage layer, firestore.rules validates field types, score bounds (1–5), "
-                "and status enumerations, while SQLite enforces CHECK constraints and parameterized placeholders (?) to "
-                "prevent SQL injection. Automated POST tests confirm rejection of blank fields, non-numeric inputs, and invalid bounds."
+                "Validation operates defensively across both Flask controllers and database schemas. In app.py, "
+                "route handlers strip strings, catch ValueError/TypeError exceptions, and reject out-of-range metrics "
+                "with HTTP 400 while preserving entered form fields. At the storage layer, firestore.rules validate "
+                "field types, difficulty/importance bounds (1–5), and Pending/Completed enumerations, while SQLite "
+                "uses CHECK constraints and parameterized placeholders (?) to block SQL injection. Combining NoSQL "
+                "flexibility with strict rules trades rigid relational joins for effortless cloud scaling. Automated "
+                "HTTP POST tests reliably verify rejection of malformed inputs."
             ),
         },
         {
@@ -796,11 +809,13 @@ def build_docx(paths: dict, output_path: str):
                 "    return pending"
             ),
             "prose": (
-                "Because urgency increases as deadlines approach, stored scores would grow stale without recalculation. "
-                "get_study_plan() dynamically recomputes every pending task for the signed-in UID against the current "
-                "calendar date, attaches subtasks, flags overdue entries, and sorts results via O(n log n) Timsort using "
-                "(-Priority_Score, Task_Deadline) to break ties by earliest due date. Meanwhile, /api/simulate-priority "
-                "computes hypothetical deadline shifts safely in memory without mutating persisted user records."
+                "Because urgency increases dynamically every calendar day, cached priority scores would quickly become "
+                "inaccurate. Consequently, get_study_plan() recalculates every pending task under the signed-in UID "
+                "against today's date, attaches sub-milestones, flags overdue tasks, and sorts records using Python's "
+                "O(n log n) Timsort with compound key (-Priority_Score, Task_Deadline) to break priority ties by "
+                "earliest deadline. Furthermore, /api/simulate-priority lets students test hypothetical deadline shifts "
+                "in memory without altering database records. The testing strategy effectively validates descending rank "
+                "ordering and exact What-If score deltas."
             ),
         },
         {
@@ -814,11 +829,13 @@ def build_docx(paths: dict, output_path: str):
                 "    stop_tracking_session(uid, id_token)"
             ),
             "prose": (
-                "Browser interval counters drift when tabs sleep or close. SYNTRIQ eliminates drift by storing a server "
-                "UNIX Start_Timestamp and Accumulated_Seconds per user in active_session/current (or SQLite ActiveSession "
-                "keyed by User_UID). Pausing adds elapsed intervals cleanly into Accumulated_Seconds, while starting a "
-                "second task returns a conflict payload unless force_switch archives the active session first. "
-                "Integration tests verify conflict detection, pause/resume continuity, logout preservation, and completion auto-stop."
+                "JavaScript setInterval clocks lose seconds whenever browsers throttle background tabs or close. "
+                "SYNTRIQ solves this by persisting a UNIX Start_Timestamp and Accumulated_Seconds per user inside "
+                "active_session/current (or SQLite ActiveSession scoped by User_UID). Pausing commits elapsed seconds "
+                "into Accumulated_Seconds, while launching another task returns a conflict payload unless force_switch "
+                "cleanly stops and preserves the prior session. Server timestamps trade a lightweight network sync request "
+                "for cross-device clock accuracy. Integration tests verify conflict detection, pause/resume retention, "
+                "logout preservation, and completion auto-stop."
             ),
         },
         {
@@ -831,11 +848,13 @@ def build_docx(paths: dict, output_path: str):
                 "routines.sort(key=lambda r: (DAYS_ORDER.get(r[\"dayOfWeek\"], 9), r[\"startTime\"]))"
             ),
             "prose": (
-                "The Time Intelligence engine combines finalized study sessions with live active timer seconds so daily, "
-                "weekly, monthly, and subject-wise totals update immediately during active focus work. Focus-to-calendar "
-                "span comparisons highlight consistency alongside consecutive study streaks derived from verified focus "
-                "dates. Furthermore, each user manages private recurring study routines sorted chronologically by weekday "
-                "on /routines. Automated suites verify live session reflection, subject aggregation, and zero cross-account routine visibility."
+                "The Time Intelligence engine aggregates completed StudySessions alongside live ActiveSession seconds so "
+                "daily, weekly, monthly, and subject breakdowns update continuously mid-session. Consecutive study "
+                "streaks derive strictly from verified session and completion dates rather than login hits. Choosing "
+                "Python server-side aggregation over raw SQL GROUP BY inside Firestore simplifies dual-backend parity "
+                "(Firestore + SQLite), though very large multi-year histories would benefit from monthly rollup caches. "
+                "Alongside analytics, /routines isolates personal weekly slots chronologically per UID. Automated suites "
+                "verify live metric updates, streaks, and zero cross-account routine visibility."
             ),
         },
         {
@@ -850,40 +869,50 @@ def build_docx(paths: dict, output_path: str):
                 "}"
             ),
             "prose": (
-                "Client modules (main.js and firebase-auth.js) coordinate real-time priority previews, SVG Pomodoro "
-                "countdowns synced to Date.now() and Page Visibility events, synthesized Web Audio focus chimes, and clean "
-                "session teardown on logout so stale account data never lingers in memory. An opt-in /api/migrate-legacy-data "
-                "endpoint isolates pre-authentication data under __legacy__ until explicitly claimed once. While Python "
-                "tests verify DOM controls and migration APIs, audio playback relies on manual browser inspection."
+                "Using HTML5, CSS3, and vanilla JavaScript (main.js and firebase-auth.js) instead of a heavy frontend "
+                "SPA framework like React eliminates bundler build steps and keeps page loads fast, though complex UI "
+                "widgets require disciplined DOM state updates. The client synchronizes Pomodoro SVG countdowns against "
+                "Date.now() and Page Visibility API events, plays offline Web Audio chimes, and clears memory cleanly on "
+                "logout. An explicit /api/migrate-legacy-data guard quarantines pre-auth records under __legacy__. "
+                "While Python suites verify APIs and DOM presence, audio synthesis and visual polish rely on manual QA."
             ),
         },
     ]
     crit_d_words = sum(count_words(b["prose"]) for b in crit_d_blocks)
 
     crit_e_criteria = [
-        ("1. Two-tier input validation", "Achieved — Both app.py route handlers (HTTP 400 + flash warnings) and Firestore/SQLite schema rules reject blank fields, invalid dates, non-numeric values, and out-of-range ratings."),
-        ("2. Google Auth & strict UID isolation", "Achieved — Firebase Google OAuth + cryptographic token verification ensures every user accesses only users/{uid}/... records enforced by Firestore Security Rules and SQLite User_UID."),
-        ("3. Add/Edit/Delete tasks with optional hours", "Achieved — Verified CRUD workflows create tasks with live preview, recalculate Priority_Score upon edits, and cascade cleanup of subtasks and active timers on deletion."),
-        ("4. Weighted priority & neutral fallback", "Achieved — priority_calculator.py executes 0.4U + 0.3I + 0.2D + 0.1W and applies a neutral workload score of 3 when target hours are omitted."),
-        ("5. Algorithmic Study Plan & Simulator", "Achieved — /study-plan sorts tasks descending by Priority_Score with earliest-deadline tie-breaking, paired with an interactive What-If priority simulator."),
-        ("6. Dashboard, overdue & 7-day heatmap", "Achieved — Dashboard isolates overdue items, highlights 7-day deadlines, plots a 7-Day Workload Heatmap, and alerts when daily hours exceed configurable capacity."),
-        ("7. Personal Weekly Routines & Settings", "Achieved — Each user maintains private recurring study blocks (/routines) and configurable capacity/Pomodoro preferences (/settings) synced to their Firebase account."),
-        ("8. Completion & sub-milestones", "Achieved — One-click task completion records Completed_At timestamps, stops any running task timer cleanly, and supports AJAX subtask checklists."),
-        ("9. Real-time tracking & Time Intelligence", "Achieved — Drift-free server timestamps enforce single-task focus per UID, retain seconds across pause/resume/logout, and stream subject and streak analytics."),
-        ("10. Cloud persistence, responsive UI & .ics export", "Achieved — Production deployment on Vercel + Cloud Firestore persists data across devices, responsive CSS supports mobile drawers, and /export/calendar.ics exports valid RFC-5545 events."),
+        ("1. Two-tier input validation", "Achieved — Both app.py route handlers (HTTP 400 + flash warnings) and Firestore/SQLite rules reject blank fields, invalid dates, non-numeric inputs, and out-of-range ratings across automated POST tests."),
+        ("2. Google Auth & strict UID isolation", "Achieved — Firebase Google OAuth + JWT verification isolates every workspace under users/{uid}/... enforced by firestore.rules and SQLite User_UID; cross-UID requests return 404/401."),
+        ("3. Add/Edit/Delete tasks with optional hours", "Achieved — Full CRUD lifecycle verified: new tasks save with 0m focus time, edits immediately recompute Priority_Score, and deletions cascade subtasks and active sessions cleanly."),
+        ("4. Weighted priority & neutral fallback", "Achieved — priority_calculator.py executes 0.4U + 0.3I + 0.2D + 0.1W reliably and substitutes a neutral workload score of 3 whenever target hours are omitted."),
+        ("5. Algorithmic Study Plan & Simulator", "Achieved — /study-plan displays pending tasks sorted strictly descending by Priority_Score with earliest-deadline tie-breaking, paired with the non-destructive What-If Simulator."),
+        ("6. Dashboard, overdue & 7-day heatmap", "Achieved — Dashboard highlights overdue items, isolates 7-day upcoming deadlines, renders the 7-Day Workload Heatmap, and flags daily overload beyond configurable capacity."),
+        ("7. Personal Weekly Routines & Settings", "Achieved — Authenticated users manage private recurring weekly schedules (/routines) and personal capacity/Pomodoro preferences (/settings) synchronized across devices."),
+        ("8. Completion & sub-milestones", "Achieved — One-click completion logs Completed_At timestamps and auto-stops active timers on that task, while AJAX endpoints toggle task sub-milestones seamlessly."),
+        ("9. Real-time tracking & Time Intelligence", "Achieved — Server UNIX timestamps maintain drift-free accuracy across pause/resume/logout and populate real-time subject breakdowns, calendar spans, and focus streaks."),
+        ("10. Cloud persistence, responsive UI & .ics export", "Achieved — Live Vercel deployment + Cloud Firestore persists data across sessions, responsive CSS adapts desktop/mobile drawers, and /export/calendar.ics generates RFC-5545 feeds."),
     ]
 
-    crit_e_improvements = (
-        "With Firebase Google Authentication, UID-isolated Cloud Firestore persistence, and real-time Time "
-        "Intelligence achieving all ten success criteria across 52 passing automated tests, three targeted upgrades "
-        "would further enhance resilience and pedagogical personalization. First, implementing an adaptive subject "
-        "calibration model comparing historical Estimated_Hours against actual Total_Tracked_Seconds could "
-        "automatically refine priority weights per learner. Second, adding an IndexedDB offline mutation queue with "
-        "background sync would allow students to log focus intervals seamlessly during temporary network outages before "
-        "reconciling with Firestore. Third, integrating automated Playwright browser end-to-end tests in GitHub Actions "
-        "alongside bidirectional Google Calendar webhooks would validate live JavaScript UI transitions continuously."
+    crit_e_tech_eval = (
+        "Evaluating the chosen technology stack confirms clear architectural strengths alongside manageable trade-offs. "
+        "Python and Flask accelerated backend prototyping and unit testing compared to Java or C++, though lacking "
+        "static compile-time type checks requires disciplined runtime validation. Cloud Firestore resolved Vercel's "
+        "read-only serverless storage limitation while enforcing hardware-isolated security rules per UID, unlike "
+        "single-file SQLite or flat CSV storage; however, Firestore's REST API introduces minor network latency on "
+        "initial workspace load. Finally, vanilla JavaScript and Jinja2 avoided React bundle overhead and simplified "
+        "maintenance, while Firebase Auth removed custom credential risks despite introducing Google-account dependency."
     )
-    crit_e_words = count_words(" ".join(d for _, d in crit_e_criteria) + " " + crit_e_improvements)
+
+    crit_e_improvements = (
+        "To further elevate accuracy and user value beyond the 52 verified automated tests, three extensions are "
+        "recommended. First, implementing an adaptive calibration model comparing historical Estimated_Hours against "
+        "actual Total_Tracked_Seconds per subject would personalize workload predictions dynamically. Second, adding "
+        "an IndexedDB offline write queue would allow students to pause or log sessions without connectivity and sync "
+        "when back online. Third, integrating automated Playwright end-to-end UI tests into GitHub Actions alongside "
+        "bidirectional Google Calendar synchronization would verify live DOM timing interactions continuously and send "
+        "proactive assignment alerts."
+    )
+    crit_e_words = count_words(" ".join(d for _, d in crit_e_criteria) + " " + crit_e_tech_eval + " " + crit_e_improvements)
     total_words = crit_a_words + crit_c_words + crit_d_words + crit_e_words
 
     # =========================================================================
@@ -973,9 +1002,45 @@ def build_docx(paths: dict, output_path: str):
     add_criterion_heading(doc, "Criterion A - Problem Specification", page_break=True)
     add_sub_heading(doc, "Problem Scenario")
     add_body_para(doc, crit_a_scenario)
-    add_sub_heading(doc, "Computational Context")
+    add_sub_heading(doc, "Client & End-User Requirements")
+    add_body_para(doc, crit_a_client)
+    add_sub_heading(doc, "Computational Context & Technology Selection")
     add_body_para(doc, crit_a_context)
     add_word_badge(doc, crit_a_words)
+
+    add_sub_heading(doc, "Technology & Language Justification (Advantages vs. Disadvantages)")
+    tech_rows = [
+        ("Python 3 + Flask", "Rapid MVC development, clean datetime/math libraries, native JSON APIs, lightweight for Vercel serverless.", "Dynamic typing catches fewer errors at compile time; Flask requires manual auth/session guards unlike Django."),
+        ("Cloud Firestore + Rules", "Zero-server scaling on Vercel, real-time cross-device sync, cryptographic UID rules enforced at database level.", "NoSQL lacks relational JOIN queries; requires active internet and careful rules design to prevent permission errors."),
+        ("SQLite (Local / QA)", "Zero-config ACID transactions, CHECK constraints, foreign-key cascades, deterministic offline test isolation.", "File-based locking limits high write concurrency; serverless containers reset ephemeral local files between deploys."),
+        ("Firebase Google OAuth", "Industry-standard OAuth security, zero password storage liability, automatic persistent sessions across refreshes.", "Depends on Google Identity providers and Firebase Console domain allowlisting before production login works."),
+        ("HTML5, CSS3 & Vanilla JS", "Zero bundler build overhead, instant page loads, direct Date.now() & Web Audio API control for drift-free timers.", "Verbose DOM updates for highly dynamic views compared to component-state frameworks such as React."),
+    ]
+    tt_tbl = doc.add_table(rows=1 + len(tech_rows), cols=3)
+    tt_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(tt_tbl, color="94A3B8", sz="4")
+    tt_widths = [Inches(1.45), Inches(2.65), Inches(2.65)]
+    prevent_row_split(tt_tbl.rows[0])
+    for j, th in enumerate(["Technology / Language", "Advantages (Why Chosen)", "Disadvantages & Trade-Offs"]):
+        c = tt_tbl.cell(0, j)
+        c.width = tt_widths[j]
+        set_cell_shading(c, "F1F5F9")
+        set_cell_margins(c, top=65, bottom=65, left=80, right=80)
+        r = c.paragraphs[0].add_run(th)
+        r.bold = True
+        r.font.size = Pt(8.5)
+        r.font.color.rgb = NAVY
+    for i, tr in enumerate(tech_rows, 1):
+        row = tt_tbl.rows[i]
+        prevent_row_split(row)
+        for j, val in enumerate(tr):
+            c = row.cells[j]
+            c.width = tt_widths[j]
+            set_cell_margins(c, top=55, bottom=55, left=80, right=80)
+            rc = c.paragraphs[0].add_run(val)
+            rc.bold = (j == 0)
+            rc.font.size = Pt(8.2)
+            rc.font.color.rgb = BODY
 
     add_sub_heading(doc, "Success Criteria")
     p_intro = doc.add_paragraph("My application will:")
@@ -1334,6 +1399,9 @@ def build_docx(paths: dict, output_path: str):
     )
     rv1.font.size = Pt(9.2)
     rv1.font.color.rgb = BODY
+
+    add_sub_heading(doc, "Evaluation of Chosen Technologies & Architecture")
+    add_body_para(doc, crit_e_tech_eval)
 
     add_sub_heading(doc, "Suggesting Improvements")
     add_body_para(doc, crit_e_improvements)
