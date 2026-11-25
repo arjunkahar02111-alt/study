@@ -647,7 +647,7 @@ def build_docx(paths: dict, output_path: str):
     c_left.width = Inches(4.5)
     c_right.width = Inches(2.25)
     pl = c_left.paragraphs[0]
-    rl = pl.add_run("Computer Science Internal Assessment  |  Arjun Kahar")
+    rl = pl.add_run("")
     rl.font.size = Pt(8.5)
     rl.font.color.rgb = MUTED
     pr = c_right.paragraphs[0]
