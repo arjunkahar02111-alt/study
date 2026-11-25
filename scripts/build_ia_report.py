@@ -31,8 +31,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 import database as db
+import firebase_auth
 from app import app
 from playwright.sync_api import sync_playwright
+
+DEMO_UID = "ia_demo_arjun_uid"
+DEMO_EMAIL = "arjunkahar02111@gmail.com"
+DEMO_NAME = "Arjun Kahar"
 
 SCRATCH_DIR = r"C:\Users\kahar\.gemini\antigravity-cli\brain\6f0761e0-6dff-4c37-9b21-4564ecdd83a2\scratch"
 IA_SCREENSHOT_DIR = os.path.join(SCRATCH_DIR, "ia_screenshots")
@@ -49,6 +54,9 @@ def find_free_port() -> int:
 def populate_demo_database(db_path: str) -> dict:
     """Populates an isolated temporary database for realistic IA screenshots."""
     db.init_db(db_path)
+    db.upsert_user_profile(DEMO_UID, DEMO_EMAIL, DEMO_NAME, "", db_path=db_path)
+    db.add_routine(DEMO_UID, "Morning IB Math AA HL", "Mathematics", "Monday", "07:00", "08:30", "Calculus past papers", db_path=db_path)
+    db.add_routine(DEMO_UID, "Evening CS IA Coding", "Computer Science", "Wednesday", "18:00", "19:30", "Firestore rules & testing", db_path=db_path)
     today = date.today()
 
     # 1. Completed task with historical focus sessions (for Time Intelligence analytics)
@@ -60,6 +68,7 @@ def populate_demo_database(db_path: str) -> dict:
         importance=5,
         estimated_hours=3.0,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
     # Insert realistic focus sessions over the past 3 days so streak & breakdown look authentic
     conn = db.get_db_connection(db_path)
@@ -74,11 +83,11 @@ def populate_demo_database(db_path: str) -> dict:
             conn.execute(
                 """
                 INSERT INTO StudySessions (
-                    Task_ID, Start_Time, End_Time, Duration_Seconds,
+                    User_UID, Task_ID, Start_Time, End_Time, Duration_Seconds,
                     Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-                ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)
                 """,
-                (tid, start_iso, end_iso, dur, sdate, round(dur / 60), f"{sdate} {et}:00", start_iso),
+                (DEMO_UID, tid, start_iso, end_iso, dur, sdate, round(dur / 60), f"{sdate} {et}:00", start_iso),
             )
         conn.execute(
             """
@@ -87,12 +96,13 @@ def populate_demo_database(db_path: str) -> dict:
                 First_Tracked_At = ?,
                 Completed_At = ?,
                 Task_Status = 'Completed'
-            WHERE Task_ID = ?
+            WHERE Task_ID = ? AND User_UID = ?
             """,
             (
                 f"{(today - timedelta(days=2)).strftime('%Y-%m-%d')}T16:00:00",
                 f"{(today - timedelta(days=1)).strftime('%Y-%m-%d')}T19:05:00",
                 completed_id,
+                DEMO_UID,
             ),
         )
     conn.close()
@@ -106,6 +116,7 @@ def populate_demo_database(db_path: str) -> dict:
         importance=4,
         estimated_hours=1.5,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
     t_top = db.add_task(
         title="Computer Science IA Criterion D & Testing",
@@ -115,6 +126,7 @@ def populate_demo_database(db_path: str) -> dict:
         importance=5,
         estimated_hours=5.0,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
     t_phys = db.add_task(
         title="Physics IA Uncertainty & Error Propagation",
@@ -124,6 +136,7 @@ def populate_demo_database(db_path: str) -> dict:
         importance=5,
         estimated_hours=4.0,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
     t_eng = db.add_task(
         title="English HL Essay Outline on Hamlet",
@@ -133,6 +146,7 @@ def populate_demo_database(db_path: str) -> dict:
         importance=4,
         estimated_hours=3.0,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
     t_econ = db.add_task(
         title="Economics Macroeconomics Policy Notes",
@@ -140,15 +154,16 @@ def populate_demo_database(db_path: str) -> dict:
         deadline=(today + timedelta(days=10)).strftime("%Y-%m-%d"),
         difficulty=2,
         importance=3,
-        estimated_hours=None,  # Demonstrates optional target hours -> neutral workload 3
+        estimated_hours=None,
         db_path=db_path,
+        user_uid=DEMO_UID,
     )
 
     # Add subtasks to top CS task
-    s1 = db.add_subtask(t_top, "Document priority_calculator.py algorithm", db_path)
-    db.toggle_subtask(s1, db_path)
-    db.add_subtask(t_top, "Verify 45 automated unit & integration tests", db_path)
-    db.add_subtask(t_top, "Embed UI screenshots into Criterion C", db_path)
+    s1 = db.add_subtask(t_top, "Document priority_calculator.py algorithm", db_path, user_uid=DEMO_UID)
+    db.toggle_subtask(s1, db_path, user_uid=DEMO_UID)
+    db.add_subtask(t_top, "Verify 52 automated unit & auth tests", db_path, user_uid=DEMO_UID)
+    db.add_subtask(t_top, "Embed UI screenshots into Criterion C", db_path, user_uid=DEMO_UID)
 
     # Add completed sessions for Physics and CS earlier today so Time Intelligence is rich
     today_str = today.strftime("%Y-%m-%d")
@@ -163,23 +178,23 @@ def populate_demo_database(db_path: str) -> dict:
             conn.execute(
                 """
                 INSERT INTO StudySessions (
-                    Task_ID, Start_Time, End_Time, Duration_Seconds,
+                    User_UID, Task_ID, Start_Time, End_Time, Duration_Seconds,
                     Session_Date, Minutes_Spent, Status, Completed_At, Created_At
-                ) VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?)
                 """,
-                (tid, start_iso, end_iso, dur, today_str, round(dur / 60), f"{today_str} {et}:00", start_iso),
+                (DEMO_UID, tid, start_iso, end_iso, dur, today_str, round(dur / 60), f"{today_str} {et}:00", start_iso),
             )
             conn.execute(
-                "UPDATE Tasks SET Total_Tracked_Seconds = Total_Tracked_Seconds + ?, First_Tracked_At = COALESCE(First_Tracked_At, ?) WHERE Task_ID = ?",
-                (dur, start_iso, tid),
+                "UPDATE Tasks SET Total_Tracked_Seconds = Total_Tracked_Seconds + ?, First_Tracked_At = COALESCE(First_Tracked_At, ?) WHERE Task_ID = ? AND User_UID = ?",
+                (dur, start_iso, tid, DEMO_UID),
             )
     conn.close()
 
     # Start an active tracking session on t_top with pre-accumulated 12m 34s
-    db.start_tracking_session(t_top, db_path=db_path)
+    db.start_tracking_session(t_top, db_path=db_path, user_uid=DEMO_UID)
     conn = db.get_db_connection(db_path)
     with conn:
-        conn.execute("UPDATE ActiveSession SET Accumulated_Seconds = 754 WHERE ID = 1")
+        conn.execute("UPDATE ActiveSession SET Accumulated_Seconds = 754 WHERE User_UID = ?", (DEMO_UID,))
     conn.close()
 
     return {
@@ -192,14 +207,40 @@ def populate_demo_database(db_path: str) -> dict:
     }
 
 
-def capture_screenshots(base_url: str) -> dict:
+def get_demo_session_cookie() -> str:
+    """Creates a signed Flask session cookie for DEMO_UID so Playwright accesses protected views."""
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess["user"] = {
+            "uid": DEMO_UID,
+            "email": DEMO_EMAIL,
+            "name": DEMO_NAME,
+            "picture": "",
+        }
+    c.get("/dashboard")
+    return c.get_cookie("session").value
+
+
+def capture_screenshots(base_url: str, session_cookie: str) -> dict:
     """Captures high-DPI screenshots of all key views using Playwright Chromium."""
     os.makedirs(IA_SCREENSHOT_DIR, exist_ok=True)
     paths = {}
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
+
+        # 0. Unauthenticated Login screen
+        anon_ctx = browser.new_context(viewport={"width": 1366, "height": 860}, device_scale_factor=2)
+        anon_pg = anon_ctx.new_page()
+        anon_pg.goto(f"{base_url}/login", wait_until="domcontentloaded")
+        anon_pg.wait_for_timeout(350)
+        p_login = os.path.join(IA_SCREENSHOT_DIR, "ia_00_login.png")
+        anon_pg.screenshot(path=p_login, full_page=False)
+        paths["login"] = p_login
+        anon_ctx.close()
+
         context = browser.new_context(viewport={"width": 1366, "height": 1160}, device_scale_factor=2)
+        context.add_cookies([{"name": "session", "value": session_cookie, "domain": "127.0.0.1", "path": "/"}])
         page = context.new_page()
 
         # 1. Dashboard (desktop - includes heatmap, stats, and task table without floating overlap)
@@ -272,6 +313,7 @@ def capture_screenshots(base_url: str) -> dict:
 
         # 7. Mobile Responsive Dashboard (390x844)
         mob_ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2)
+        mob_ctx.add_cookies([{"name": "session", "value": session_cookie, "domain": "127.0.0.1", "path": "/"}])
         mob_page = mob_ctx.new_page()
         mob_page.goto(f"{base_url}/dashboard", wait_until="networkidle")
         mob_page.wait_for_timeout(700)
@@ -1191,8 +1233,13 @@ def build_ia_html(screenshot_paths: dict) -> str:
   <h2>Implemented User Interface &amp; Application Screenshots</h2>
 
   <div class="figure-box">
+    <img src="{img_uri('login')}" alt="SYNTRIQ Google Sign-In Screen" style="max-height: 330px; width: auto;"/>
+    <div class="figure-caption">Image 3: Firebase Google OAuth Authentication Screen with UID-Isolated Private Workspace Security</div>
+  </div>
+
+  <div class="figure-box">
     <img src="{img_uri('dashboard')}" alt="SYNTRIQ Study Dashboard"/>
-    <div class="figure-caption">Image 3: Implemented Study Dashboard showing 7-Day Workload Heatmap, Capacity Meter, Overdue Banner, Priority Task Table, and Live Active Session Pill</div>
+    <div class="figure-caption">Image 4: Implemented Study Dashboard showing 7-Day Workload Heatmap, Capacity Meter, Overdue Banner, Priority Task Table, and Live Active Session Pill</div>
   </div>
 
   <div class="figure-box">
@@ -1352,7 +1399,7 @@ FUNCTION start_tracking(task_id, force):
 
   <h2>Meeting Success Criteria</h2>
   {crit_e_list_html}
-  <p style="margin-top: 8px;"><strong>Automated Verification Summary:</strong> All 45 automated tests across <code>run_tests.py</code> (14/14 Criterion B tests), <code>scripts/test_syntriq3.py</code> (20/20 commercial QA tests), and <code>scripts/test_time_intelligence.py</code> (11/11 Time Intelligence engine tests) passed with zero failures.</p>
+  <p style="margin-top: 8px;"><strong>Automated Verification Summary:</strong> All 52 automated tests across <code>run_tests.py</code> (14/14 Criterion B tests), <code>scripts/test_syntriq3.py</code> (20/20 commercial QA tests), <code>scripts/test_time_intelligence.py</code> (11/11 Time Intelligence engine tests), and <code>scripts/test_multi_user_auth.py</code> (7/7 Firebase UID isolation &amp; security tests) passed with zero failures.</p>
 
   <h2>Suggesting Improvements</h2>
   <p>{html.escape(crit_e_improvements)}</p>
@@ -1389,8 +1436,11 @@ def main():
     tmp_db.close()
 
     orig_default = db.DEFAULT_DB_PATH
+    orig_fb_check = firebase_auth.is_firebase_configured
+    firebase_auth.is_firebase_configured = lambda: False
     db.DEFAULT_DB_PATH = tmp_db_path
     app.config["DB_FILE"] = tmp_db_path
+    app.config["TESTING"] = True
 
     port = find_free_port()
     server = make_server("127.0.0.1", port, app)
@@ -1398,11 +1448,12 @@ def main():
 
     try:
         populate_demo_database(tmp_db_path)
+        session_cookie = get_demo_session_cookie()
         thread.start()
         base_url = f"http://127.0.0.1:{port}"
         print(f"Temporary demo server running at {base_url}")
 
-        screenshot_paths = capture_screenshots(base_url)
+        screenshot_paths = capture_screenshots(base_url, session_cookie)
         print(f"Captured {len(screenshot_paths)} IA screenshots in {IA_SCREENSHOT_DIR}")
 
         html_content = build_ia_html(screenshot_paths)
@@ -1415,6 +1466,7 @@ def main():
         print(f"Generated IA PDF: {PDF_OUTPUT_PATH}")
     finally:
         server.shutdown()
+        firebase_auth.is_firebase_configured = orig_fb_check
         db.DEFAULT_DB_PATH = orig_default
         app.config.pop("DB_FILE", None)
         gc.collect()
