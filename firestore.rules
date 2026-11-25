@@ -87,7 +87,11 @@ service cloud.firestore {
 
       // Subjects, Study Sessions, Active Timer Session, Goals, Progress, Analytics
       match /subjects/{subjectId} {
-        allow read, write: if isOwner(uid) && (request.method == 'delete' || hasValidOwnerField(uid));
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && hasValidOwnerField(uid)
+          && ownerUnchanged();
+        allow delete: if isOwner(uid);
       }
 
       match /study_sessions/{sessionId} {
@@ -107,15 +111,27 @@ service cloud.firestore {
       }
 
       match /goals/{goalId} {
-        allow read, write: if isOwner(uid) && (request.method == 'delete' || hasValidOwnerField(uid));
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && hasValidOwnerField(uid)
+          && ownerUnchanged();
+        allow delete: if isOwner(uid);
       }
 
       match /progress/{docId} {
-        allow read, write: if isOwner(uid) && (request.method == 'delete' || hasValidOwnerField(uid));
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && hasValidOwnerField(uid)
+          && ownerUnchanged();
+        allow delete: if isOwner(uid);
       }
 
       match /analytics/{docId} {
-        allow read, write: if isOwner(uid) && (request.method == 'delete' || hasValidOwnerField(uid));
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && hasValidOwnerField(uid)
+          && ownerUnchanged();
+        allow delete: if isOwner(uid);
       }
     }
 
